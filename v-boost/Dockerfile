@@ -20,8 +20,6 @@ RUN npm install --omit=dev
 
 # Copy built frontend and server source
 COPY --from=builder /app/dist ./dist
-COPY server ./server
-
-EXPOSE 3001
+COPY --from=builder /app/server ./server
 
 CMD ["node", "server/server.js"]

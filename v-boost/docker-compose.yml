@@ -11,5 +11,18 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DB_URL: postgresql://vboost:vboost_pass@db:5432/vboost
+      ZEFAME_API_KEY: ${ZEFAME_API_KEY}
+      ALLOWED_ORIGIN: http://localhost:3001
+    depends_on:
+      - db
+
 volumes:
   pgdata:

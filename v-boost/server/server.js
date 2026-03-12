@@ -17,12 +17,13 @@ const API_KEY = process.env.ZEFAME_API_KEY
 const ZEFAME_API = 'https://zefame.com/api/v2'
 
 const connectionString = process.env.DB_URL || process.env.DATABASE_URL || 'postgresql://vboost:vboost_pass@localhost:5433/vboost'
+const isProduction = !!(process.env.DB_URL || process.env.DATABASE_URL)
+
+console.log('Connecting to DB (production:', isProduction, ')')
 
 const db = new Pool({
   connectionString,
-  ssl: connectionString.includes('railway') || process.env.DATABASE_URL
-    ? { rejectUnauthorized: false }
-    : false,
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
 })
 
 async function initDb() {
@@ -208,5 +209,10 @@ initDb()
   })
   .catch(err => {
     console.error('DB init failed:', err.message)
+    console.error('DB error code:', err.code)
+    console.error('DB error detail:', err.detail)
+    console.error('Connection string set:', !!connectionString)
+    console.error('DATABASE_URL set:', !!process.env.DATABASE_URL)
+    console.error('DB_URL set:', !!process.env.DB_URL)
     process.exit(1)
   })

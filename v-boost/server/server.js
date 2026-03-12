@@ -17,7 +17,7 @@ const API_KEY = process.env.ZEFAME_API_KEY
 const ZEFAME_API = 'https://zefame.com/api/v2'
 
 const db = new Pool({
-  connectionString: process.env.DB_URL || 'postgresql://vboost:vboost_pass@localhost:5433/vboost',
+  connectionString: process.env.DB_URL || process.env.DATABASE_URL || 'postgresql://vboost:vboost_pass@localhost:5433/vboost',
 })
 
 async function initDb() {

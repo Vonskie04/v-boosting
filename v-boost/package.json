@@ -7,7 +7,7 @@
     "start": "node server/server.js",
     "dev": "vite",
     "dev:server": "node --watch server/server.js",
-    "dev:all": "concurrently -n frontend,backend -c cyan,magenta \"bun run dev\" \"bun run dev:server\"",
+    "dev:all": "concurrently -n frontend,backend -c cyan,magenta \"npm run dev\" \"npm run dev:server\"",
     "build": "vite build",
     "preview": "vite preview"
   },

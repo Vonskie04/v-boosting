@@ -16,12 +16,6 @@
 
         <button
           class="ml-auto px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-          @click="showAdmin = !showAdmin"
-        >
-          Admin
-        </button>
-        <button
-          class="px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
           @click="logout"
         >
           Logout
@@ -75,12 +69,21 @@ async function sendHeartbeat() {
   } catch { /* ignore network errors */ }
 }
 
+function handleKeydown(e) {
+  if (e.altKey && e.key === 'a') {
+    e.preventDefault()
+    showAdmin.value = !showAdmin.value
+  }
+}
+
 onMounted(() => {
-  heartbeatInterval = setInterval(sendHeartbeat, 30000)
+  heartbeatInterval = setInterval(sendHeartbeat, 5000)
+  window.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
   clearInterval(heartbeatInterval)
+  window.removeEventListener('keydown', handleKeydown)
 })
 
 async function logout() {

@@ -16,13 +16,22 @@ const PORT = process.env.PORT || 3001
 const API_KEY = process.env.ZEFAME_API_KEY
 const ZEFAME_API = 'https://zefame.com/api/v2'
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://vboost:vboost_pass@localhost:5433/vboost'
+const connectionString = process.env.DATABASE_URL
+const dbSslEnabled = (process.env.DATABASE_SSL ?? 'true').toLowerCase() === 'true'
+const allowedOrigins = process.env.ALLOWED_ORIGIN
+  ? process.env.ALLOWED_ORIGIN.split(',').map(origin => origin.trim()).filter(Boolean)
+  : null
+
+if (!connectionString) {
+  console.error('ERROR: DATABASE_URL is not set')
+  process.exit(1)
+}
 
 console.log('Connecting to DB:', connectionString.replace(/\/\/.*@/, '//<credentials>@'))
 
 const db = new Pool({
   connectionString,
-  ssl: false,
+  ssl: dbSslEnabled ? { rejectUnauthorized: false } : false,
 })
 
 async function initDb() {
@@ -41,7 +50,7 @@ async function initDb() {
 }
 
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGIN || 'http://localhost:5173'
+  origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : true,
 }))
   app.use(express.json())
 
@@ -195,7 +204,7 @@ app.get('*', (_req, res) => {
 initDb()
   .then(() => {
     const server = app.listen(PORT, () => {
-      console.log(`v-boost server running at http://localhost:${PORT}`)
+      console.log(`v-boost server listening on port ${PORT}`)
     })
     server.on('error', err => {
       if (err.code === 'EADDRINUSE') {

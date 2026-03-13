@@ -23,7 +23,7 @@ console.log('Connecting to DB (production:', isProduction, ')')
 
 const db = new Pool({
   connectionString,
-  ssl: isProduction ? { rejectUnauthorized: false } : false,
+  ssl: false,
 })
 
 async function initDb() {

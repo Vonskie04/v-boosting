@@ -33,3 +33,4 @@ Notes:
 - Backend entrypoint is `node server/server.js`.
 - Express serves the built frontend from `dist`.
 - Frontend calls `/api/*` with relative paths, so same-domain routing works in Railway.
+- `docker-compose.yml` now requires explicit credentials via environment variables and no longer hardcodes database secrets.

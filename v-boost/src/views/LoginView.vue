@@ -23,7 +23,8 @@
         Submit
       </button>
 
-      <p v-if="status === 'error'" class="text-sm text-red-700">Incorrect password.</p>
+      <p v-if="status === 'empty'" class="text-sm text-yellow-600">Please enter a password.</p>
+      <p v-else-if="status === 'error'" class="text-sm text-red-700">Incorrect password.</p>
     </form>
   </main>
 </template>
@@ -40,6 +41,11 @@ const passwordInput = ref('')
 const status = ref('idle')
 
 function handleSubmit() {
+  if (!passwordInput.value.trim()) {
+    status.value = 'empty'
+    return
+  }
+
   if (passwordInput.value === CORRECT_PASSWORD) {
     sessionStorage.setItem(AUTH_FLAG, 'true')
     router.push({ name: 'dashboard' })

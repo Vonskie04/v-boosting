@@ -16,10 +16,9 @@ const PORT = process.env.PORT || 3001
 const API_KEY = process.env.ZEFAME_API_KEY
 const ZEFAME_API = 'https://zefame.com/api/v2'
 
-const connectionString = process.env.DB_URL || process.env.DATABASE_URL || 'postgresql://vboost:vboost_pass@localhost:5433/vboost'
-const isProduction = !!(process.env.DB_URL || process.env.DATABASE_URL)
+const connectionString = process.env.DATABASE_URL || 'postgresql://vboost:vboost_pass@localhost:5433/vboost'
 
-console.log('Connecting to DB (production:', isProduction, ')')
+console.log('Connecting to DB:', connectionString.replace(/\/\/.*@/, '//<credentials>@'))
 
 const db = new Pool({
   connectionString,

@@ -16,6 +16,12 @@
 
         <button
           class="ml-auto px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+          @click="showAdmin = !showAdmin"
+        >
+          Admin
+        </button>
+        <button
+          class="px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
           @click="logout"
         >
           Logout
@@ -29,14 +35,17 @@
         <OrderLogs v-else-if="activeTab === 'logs'" />
       </KeepAlive>
     </main>
+
+    <AdminPanel v-if="showAdmin" @close="showAdmin = false" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BoostingBoard from '../components/BoostingBoard.vue'
 import OrderLogs from '../components/OrderLogs.vue'
+import AdminPanel from '../components/AdminPanel.vue'
 import { AUTH_FLAG } from '../router'
 
 const router = useRouter()
@@ -47,8 +56,41 @@ const tabs = [
 ]
 
 const activeTab = ref('boost')
+const showAdmin = ref(false)
 
-function logout() {
+let heartbeatInterval
+
+async function sendHeartbeat() {
+  const token = sessionStorage.getItem(AUTH_FLAG)
+  if (!token) { router.push({ name: 'login' }); return }
+  try {
+    const res = await fetch('/api/auth/heartbeat', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) {
+      sessionStorage.removeItem(AUTH_FLAG)
+      router.push({ name: 'login' })
+    }
+  } catch { /* ignore network errors */ }
+}
+
+onMounted(() => {
+  heartbeatInterval = setInterval(sendHeartbeat, 30000)
+})
+
+onUnmounted(() => {
+  clearInterval(heartbeatInterval)
+})
+
+async function logout() {
+  const token = sessionStorage.getItem(AUTH_FLAG)
+  if (token) {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {})
+  }
   sessionStorage.removeItem(AUTH_FLAG)
   router.push({ name: 'login' })
 }

@@ -4,6 +4,7 @@ import { dirname, join } from 'path'
 import express from 'express'
 import cors from 'cors'
 import pg from 'pg'
+import crypto from 'crypto'
 
 const { Pool } = pg
 
@@ -15,6 +16,8 @@ const app = express()
 const PORT = process.env.PORT || 3001
 const API_KEY = process.env.ZEFAME_API_KEY
 const ZEFAME_API = 'https://zefame.com/api/v2'
+const APP_PASSWORD = process.env.APP_PASSWORD
+let maxDevices = parseInt(process.env.MAX_DEVICES || '10', 10)
 
 const connectionString = process.env.DATABASE_URL
 const dbSslEnabled = (process.env.DATABASE_SSL ?? 'true').toLowerCase() === 'true'
@@ -47,6 +50,16 @@ async function initDb() {
       error     TEXT
     )
   `)
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id          TEXT PRIMARY KEY,
+      device_info TEXT,
+      ip_address  TEXT,
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      last_seen   TIMESTAMPTZ DEFAULT NOW(),
+      is_active   BOOLEAN DEFAULT TRUE
+    )
+  `)
 }
 
 app.use(cors({
@@ -54,11 +67,113 @@ app.use(cors({
 }))
   app.use(express.json())
 
-// Validate API key is present at startup
+// Validate required env vars at startup
 if (!API_KEY) {
   console.error('ERROR: ZEFAME_API_KEY is not set in .env')
   process.exit(1)
 }
+if (!APP_PASSWORD) {
+  console.error('ERROR: APP_PASSWORD is not set in .env')
+  process.exit(1)
+}
+
+// ── Auth routes ─────────────────────────────────────────────────────────────
+
+// POST /api/auth/login
+app.post('/api/auth/login', async (req, res) => {
+  const { password } = req.body
+  if (!password) return res.status(400).json({ error: 'Password required' })
+  if (password !== APP_PASSWORD) return res.status(401).json({ error: 'Incorrect password' })
+
+  const { rows: active } = await db.query(
+    'SELECT COUNT(*) FROM sessions WHERE is_active = TRUE'
+  )
+  if (parseInt(active[0].count, 10) >= maxDevices) {
+    return res.status(403).json({ error: `Device limit reached (${maxDevices} max)` })
+  }
+
+  const token = crypto.randomBytes(32).toString('hex')
+  const deviceInfo = req.headers['user-agent'] || 'Unknown'
+  const ipAddress =
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    req.socket.remoteAddress ||
+    'Unknown'
+
+  await db.query(
+    'INSERT INTO sessions (id, device_info, ip_address) VALUES ($1, $2, $3)',
+    [token, deviceInfo, ipAddress]
+  )
+  res.json({ token })
+})
+
+// POST /api/auth/logout
+app.post('/api/auth/logout', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  if (token) await db.query('UPDATE sessions SET is_active = FALSE WHERE id = $1', [token])
+  res.json({ ok: true })
+})
+
+// POST /api/auth/heartbeat
+app.post('/api/auth/heartbeat', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  if (!token) return res.status(401).json({ error: 'No token' })
+  const { rows } = await db.query(
+    'UPDATE sessions SET last_seen = NOW() WHERE id = $1 AND is_active = TRUE RETURNING id',
+    [token]
+  )
+  if (rows.length === 0) return res.status(401).json({ error: 'Session expired' })
+  res.json({ ok: true })
+})
+
+// ── Admin routes ──────────────────────────────────────────────────────────────
+
+async function requireSession(req, res) {
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  if (!token) { res.status(401).json({ error: 'Unauthorized' }); return null }
+  const { rows } = await db.query(
+    'SELECT id FROM sessions WHERE id = $1 AND is_active = TRUE',
+    [token]
+  )
+  if (rows.length === 0) { res.status(401).json({ error: 'Unauthorized' }); return null }
+  return token
+}
+
+// GET /api/admin/sessions
+app.get('/api/admin/sessions', async (req, res) => {
+  if (!await requireSession(req, res)) return
+  const { rows } = await db.query(
+    `SELECT id, device_info AS "deviceInfo", ip_address AS "ipAddress",
+            created_at AS "createdAt", last_seen AS "lastSeen"
+     FROM sessions WHERE is_active = TRUE ORDER BY created_at DESC`
+  )
+  res.json({ sessions: rows, maxDevices })
+})
+
+// DELETE /api/admin/sessions/:id
+app.delete('/api/admin/sessions/:id', async (req, res) => {
+  if (!await requireSession(req, res)) return
+  await db.query('UPDATE sessions SET is_active = FALSE WHERE id = $1', [req.params.id])
+  res.json({ ok: true })
+})
+
+// POST /api/admin/disconnect-all
+app.post('/api/admin/disconnect-all', async (req, res) => {
+  const callerToken = await requireSession(req, res)
+  if (!callerToken) return
+  await db.query('UPDATE sessions SET is_active = FALSE WHERE id != $1', [callerToken])
+  res.json({ ok: true })
+})
+
+// PUT /api/admin/limit
+app.put('/api/admin/limit', async (req, res) => {
+  if (!await requireSession(req, res)) return
+  const limit = parseInt(req.body.limit, 10)
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    return res.status(400).json({ error: 'Limit must be between 1 and 100' })
+  }
+  maxDevices = limit
+  res.json({ maxDevices })
+})
 
 // GET /api/services – fetch available boosting services
 // Query params:

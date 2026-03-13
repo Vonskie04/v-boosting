@@ -18,13 +18,14 @@
 
       <button
         type="submit"
-        class="w-full rounded-md bg-gray-900 text-white py-2 font-medium hover:bg-gray-800 transition-colors"
+        :disabled="status === 'loading'"
+        class="w-full rounded-md bg-gray-900 text-white py-2 font-medium hover:bg-gray-800 transition-colors disabled:opacity-60"
       >
-        Submit
+        {{ status === 'loading' ? 'Checking...' : 'Submit' }}
       </button>
 
       <p v-if="status === 'empty'" class="text-sm text-yellow-600">Please enter a password.</p>
-      <p v-else-if="status === 'error'" class="text-sm text-red-700">Incorrect password.</p>
+      <p v-else-if="status === 'error'" class="text-sm text-red-700">{{ errorMessage }}</p>
     </form>
   </main>
 </template>
@@ -34,24 +35,36 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { AUTH_FLAG } from '../router'
 
-const CORRECT_PASSWORD = 'Jvon$_2134'
-
 const router = useRouter()
 const passwordInput = ref('')
 const status = ref('idle')
+const errorMessage = ref('')
 
-function handleSubmit() {
+async function handleSubmit() {
   if (!passwordInput.value.trim()) {
     status.value = 'empty'
     return
   }
 
-  if (passwordInput.value === CORRECT_PASSWORD) {
-    sessionStorage.setItem(AUTH_FLAG, 'true')
-    router.push({ name: 'dashboard' })
-    return
-  }
+  status.value = 'loading'
 
-  status.value = 'error'
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: passwordInput.value }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      errorMessage.value = data.error || 'Incorrect password.'
+      status.value = 'error'
+      return
+    }
+    sessionStorage.setItem(AUTH_FLAG, data.token)
+    router.push({ name: 'dashboard' })
+  } catch {
+    errorMessage.value = 'Could not reach the server.'
+    status.value = 'error'
+  }
 }
 </script>

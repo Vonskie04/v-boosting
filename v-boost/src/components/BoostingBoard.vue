@@ -1,6 +1,52 @@
 <template>
   <div class="flex-1 w-full flex items-start justify-center p-6">
-    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl p-8 border border-gray-100 flex flex-col items-center">
+    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl p-8 border border-gray-100 flex flex-col items-center relative">
+
+      <!-- Balance widget -->
+      <div class="absolute top-4 right-4">
+        <button
+          type="button"
+          @click="toggleBalance"
+          class="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M16 12h.01"/>
+            <path d="M2 10h20"/>
+          </svg>
+          Balance
+          <svg :class="balanceOpen ? 'rotate-180' : ''"
+            class="transition-transform duration-200"
+            xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </button>
+
+        <div
+          v-if="balanceOpen"
+          class="absolute right-0 mt-1.5 w-52 bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-10"
+        >
+          <div v-if="balanceLoading" class="text-sm text-gray-400">Loading...</div>
+          <div v-else-if="balanceError" class="text-sm text-red-500">{{ balanceError }}</div>
+          <div v-else-if="balance !== null" class="flex flex-col gap-1">
+            <p class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Account Balance</p>
+            <p class="text-2xl font-bold text-gray-800">${{ balance }}</p>
+            <p class="text-xs text-gray-400">{{ balanceCurrency }}</p>
+          </div>
+          <button
+            type="button"
+            @click="fetchBalance"
+            :disabled="balanceLoading"
+            class="mt-3 w-full text-xs text-gray-500 hover:text-gray-800 flex items-center justify-center gap-1 disabled:opacity-40 transition-colors"
+          >
+            <svg :class="balanceLoading ? 'animate-spin' : ''" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 1 1-9-9 9 9 0 0 1 6.36 2.64L21 3v6h-6"/>
+            </svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+
       <h1>
         BOOSTER AHA
       </h1>
@@ -160,6 +206,37 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+
+// ── Balance ───────────────────────────────────────────────────────────────
+const balanceOpen = ref(false)
+const balanceLoading = ref(false)
+const balanceError = ref('')
+const balance = ref(null)
+const balanceCurrency = ref('')
+
+async function fetchBalance() {
+  balanceLoading.value = true
+  balanceError.value = ''
+  try {
+    const res = await fetch('/api/balance')
+    if (!res.ok) throw new Error('Bad response')
+    const data = await res.json()
+    if (data.error) throw new Error(data.error)
+    balance.value = parseFloat(data.balance).toFixed(2)
+    balanceCurrency.value = data.currency ?? ''
+  } catch (err) {
+    balanceError.value = err.message || 'Failed to load balance.'
+  } finally {
+    balanceLoading.value = false
+  }
+}
+
+function toggleBalance() {
+  balanceOpen.value = !balanceOpen.value
+  if (balanceOpen.value && balance.value === null && !balanceLoading.value) {
+    fetchBalance()
+  }
+}
 
 const url = ref('')
 const quantity = ref(1000)

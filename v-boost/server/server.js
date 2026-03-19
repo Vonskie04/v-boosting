@@ -273,6 +273,21 @@ app.post('/api/boost', async (req, res) => {
   }
 })
 
+// GET /api/balance – fetch account balance
+app.get('/api/balance', async (_req, res) => {
+  try {
+    const response = await fetch(`${ZEFAME_API}?key=${API_KEY}&action=balance`)
+    if (!response.ok) {
+      return res.status(502).json({ error: 'Upstream API error', status: response.status })
+    }
+    const data = await response.json()
+    res.json(data)
+  } catch (err) {
+    console.error('Balance fetch error:', err.message)
+    res.status(500).json({ error: 'Failed to fetch balance' })
+  }
+})
+
 // GET /api/order/:id – check order status
 app.get('/api/order/:id', async (req, res) => {
   const { id } = req.params

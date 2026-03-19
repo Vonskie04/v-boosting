@@ -30,8 +30,7 @@
           <div v-else-if="balanceError" class="text-sm text-red-500">{{ balanceError }}</div>
           <div v-else-if="balance !== null" class="flex flex-col gap-1">
             <p class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Account Balance</p>
-            <p class="text-2xl font-bold text-gray-800">${{ balance }}</p>
-            <p class="text-xs text-gray-400">{{ balanceCurrency }}</p>
+            <p class="text-2xl font-bold text-gray-800">$USD {{ balance }}</p>
           </div>
           <button
             type="button"
@@ -212,7 +211,6 @@ const balanceOpen = ref(false)
 const balanceLoading = ref(false)
 const balanceError = ref('')
 const balance = ref(null)
-const balanceCurrency = ref('')
 
 async function fetchBalance() {
   balanceLoading.value = true
@@ -222,8 +220,8 @@ async function fetchBalance() {
     if (!res.ok) throw new Error('Bad response')
     const data = await res.json()
     if (data.error) throw new Error(data.error)
-    balance.value = parseFloat(data.balance).toFixed(2)
-    balanceCurrency.value = data.currency ?? ''
+    balance.value = data.balance
+    balanceCurrency.value = 'USD'
   } catch (err) {
     balanceError.value = err.message || 'Failed to load balance.'
   } finally {

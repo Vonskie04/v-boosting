@@ -221,7 +221,6 @@ async function fetchBalance() {
     const data = await res.json()
     if (data.error) throw new Error(data.error)
     balance.value = data.balance
-    balanceCurrency.value = 'USD'
   } catch (err) {
     balanceError.value = err.message || 'Failed to load balance.'
   } finally {

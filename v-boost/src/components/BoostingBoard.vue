@@ -30,7 +30,7 @@
           <div v-else-if="balanceError" class="text-sm text-red-500">{{ balanceError }}</div>
           <div v-else-if="balance !== null" class="flex flex-col gap-1">
             <p class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Account Balance</p>
-            <p class="text-2xl font-bold text-gray-800">$USD {{ balance }}</p>
+            <p class="text-2xl font-bold text-gray-800">$ {{ balance }}</p>
           </div>
           <button
             type="button"

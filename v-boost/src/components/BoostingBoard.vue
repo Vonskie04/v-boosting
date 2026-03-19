@@ -216,11 +216,21 @@ async function fetchBalance() {
   balanceLoading.value = true
   balanceError.value = ''
   try {
-    const res = await fetch('/api/balance')
-    if (!res.ok) throw new Error('Bad response')
-    const data = await res.json()
+    const [balRes, fxRes] = await Promise.all([
+      fetch('/api/balance'),
+      fetch('https://api.frankfurter.app/latest?from=EUR&to=USD'),
+    ])
+    if (!balRes.ok) throw new Error('Bad response from balance API')
+    const data = await balRes.json()
     if (data.error) throw new Error(data.error)
-    balance.value = data.balance
+
+    const eurAmount = parseFloat(data.balance)
+    let rate = 1
+    if (fxRes.ok) {
+      const fxData = await fxRes.json()
+      rate = fxData?.rates?.USD ?? 1
+    }
+    balance.value = (eurAmount * rate).toFixed(4)
   } catch (err) {
     balanceError.value = err.message || 'Failed to load balance.'
   } finally {

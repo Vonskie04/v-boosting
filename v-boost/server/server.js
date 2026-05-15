@@ -234,6 +234,34 @@ app.get('/api/services', async (req, res) => {
   }
 })
 
+// GET /api/free-tiktok-views/embed – proxy embed page so it can load in same-origin iframe
+app.get('/api/free-tiktok-views/embed', async (_req, res) => {
+  try {
+    const response = await fetch(FREE_TIKTOK_VIEWS_URL, {
+      headers: {
+        // Some upstreams serve different markup without a browser-like user agent.
+        'User-Agent': 'Mozilla/5.0 (compatible; v-boost-embed/1.0)'
+      }
+    })
+
+    if (!response.ok) {
+      return res.status(502).send('Failed to load free TikTok views page')
+    }
+
+    const rawHtml = await response.text()
+    const htmlWithBase = /<base\s/i.test(rawHtml)
+      ? rawHtml
+      : rawHtml.replace(/<head(\s[^>]*)?>/i, match => `${match}\n<base href="https://zefame.com/">`)
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8')
+    res.setHeader('Cache-Control', 'public, max-age=300')
+    res.send(htmlWithBase)
+  } catch (err) {
+    console.error('Free TikTok views embed error:', err.message)
+    res.status(500).send('Failed to embed free TikTok views page')
+  }
+})
+
 // POST /api/boost – submit a new boost order
 // Body: { url: string, service: number|string, quantity: number }
 app.post('/api/boost', async (req, res) => {

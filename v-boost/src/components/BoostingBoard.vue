@@ -113,6 +113,22 @@
             >
               Open Free TikTok Views page
             </a>
+
+            <div
+              v-if="selectedCategory === 'free'"
+              class="mt-2 rounded-xl border border-gray-200 bg-white p-2"
+            >
+              <iframe
+                :src="FREE_TIKTOK_VIEWS_EMBED_URL"
+                title="Free TikTok Views"
+                loading="lazy"
+                class="w-full rounded-lg border border-gray-200 bg-white"
+                style="height: 620px;"
+              ></iframe>
+              <p class="px-1 pt-2 text-[11px] text-gray-500">
+                If the page does not render correctly, use the link above to open it in a new tab.
+              </p>
+            </div>
           </div>
 
           <!-- TikTok URL -->
@@ -221,6 +237,7 @@
 import { ref, watch } from 'vue'
 
 const FREE_TIKTOK_VIEWS_URL = 'https://zefame.com/free-tiktok-views'
+const FREE_TIKTOK_VIEWS_EMBED_URL = '/api/free-tiktok-views/embed'
 
 // ── Balance ───────────────────────────────────────────────────────────────
 const balanceOpen = ref(false)

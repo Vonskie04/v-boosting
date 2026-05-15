@@ -6,7 +6,7 @@
       <div class="absolute -right-24 top-8 size-72 rounded-full bg-[#d2e4ff]/70 blur-3xl"></div>
 
       <!-- Balance widget -->
-      <div class="w-full flex justify-end sm:absolute sm:top-4 sm:right-4 z-10 mb-3 sm:mb-0">
+      <div class="relative z-10 self-end sm:absolute sm:top-4 sm:right-4 mb-3 sm:mb-0">
         <button
           type="button"
           @click="toggleBalance"
@@ -25,28 +25,30 @@
           </svg>
         </button>
 
-        <div
-          v-if="balanceOpen"
-          class="absolute left-0 right-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-56 bg-white border border-[#d8e2f2] rounded-2xl shadow-[0_18px_44px_rgba(27,57,102,0.2)] p-4 z-10"
-        >
-          <div v-if="balanceLoading" class="text-sm text-[#6a7f9f]">Loading...</div>
-          <div v-else-if="balanceError" class="text-sm text-rose-600">{{ balanceError }}</div>
-          <div v-else-if="balance !== null" class="flex flex-col gap-1">
-            <p class="text-xs text-[#6a7f9f] uppercase tracking-wide font-semibold">Account Balance</p>
-            <p class="text-2xl font-bold text-[#153663]">$ {{ balance }}</p>
-          </div>
-          <button
-            type="button"
-            @click="fetchBalance"
-            :disabled="balanceLoading"
-            class="mt-3 w-full text-xs font-semibold text-[#5a7193] hover:text-[#1f3150] rounded-lg bg-[#f3f7ff] py-1.5 flex items-center justify-center gap-1 disabled:opacity-40 transition-colors"
+        <transition name="balance-dropdown">
+          <div
+            v-if="balanceOpen"
+            class="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white border border-[#d8e2f2] rounded-2xl shadow-[0_18px_44px_rgba(27,57,102,0.2)] p-4 z-10"
           >
-            <svg :class="balanceLoading ? 'animate-spin' : ''" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12a9 9 0 1 1-9-9 9 9 0 0 1 6.36 2.64L21 3v6h-6"/>
-            </svg>
-            Refresh
-          </button>
-        </div>
+            <div v-if="balanceLoading" class="text-sm text-[#6a7f9f]">Loading...</div>
+            <div v-else-if="balanceError" class="text-sm text-rose-600">{{ balanceError }}</div>
+            <div v-else-if="balance !== null" class="flex flex-col gap-1">
+              <p class="text-xs text-[#6a7f9f] uppercase tracking-wide font-semibold">Account Balance</p>
+              <p class="text-2xl font-bold text-[#153663]">$ {{ balance }}</p>
+            </div>
+            <button
+              type="button"
+              @click="fetchBalance"
+              :disabled="balanceLoading"
+              class="mt-3 w-full text-xs font-semibold text-[#5a7193] hover:text-[#1f3150] rounded-lg bg-[#f3f7ff] py-1.5 flex items-center justify-center gap-1 disabled:opacity-40 transition-colors"
+            >
+              <svg :class="balanceLoading ? 'animate-spin' : ''" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 1 1-9-9 9 9 0 0 1 6.36 2.64L21 3v6h-6"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </transition>
       </div>
 
       <div class="relative z-1 text-center">
@@ -405,6 +407,18 @@ async function submitBoost() {
 </script>
 
 <style scoped>
+.balance-dropdown-enter-active,
+.balance-dropdown-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  transform-origin: top right;
+}
+
+.balance-dropdown-enter-from,
+.balance-dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+}
+
 .free-embed-frame {
   height: 620px;
 }

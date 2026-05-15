@@ -92,13 +92,27 @@
               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
               :disabled="loading"
             >
-              <option v-for="svc in services" :key="svc.service" :value="svc.service">
-                {{ svc.name }}
+              <option
+                v-for="svc in services"
+                :key="svc.service"
+                :value="svc.service"
+                :disabled="Boolean(svc.externalUrl)"
+              >
+                {{ svc.externalUrl ? `${svc.name} (link)` : svc.name }}
               </option>
             </select>
             <div v-else-if="servicesLoading" class="text-sm text-gray-400 px-1">Loading services...</div>
             <div v-else-if="servicesError" class="text-sm text-red-500 px-1">Could not load services. Is the server running?</div>
             <div v-else class="text-sm text-gray-400 px-1">No services found for this category.</div>
+            <a
+              v-if="selectedCategory === 'free'"
+              :href="FREE_TIKTOK_VIEWS_URL"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-xs text-blue-600 hover:text-blue-700 underline underline-offset-2"
+            >
+              Open Free TikTok Views page
+            </a>
           </div>
 
           <!-- TikTok URL -->
@@ -206,6 +220,8 @@
 <script setup>
 import { ref, watch } from 'vue'
 
+const FREE_TIKTOK_VIEWS_URL = 'https://zefame.com/free-tiktok-views'
+
 // ── Balance ───────────────────────────────────────────────────────────────
 const balanceOpen = ref(false)
 const balanceLoading = ref(false)
@@ -216,19 +232,32 @@ async function fetchBalance() {
   balanceLoading.value = true
   balanceError.value = ''
   try {
-    const [balRes, fxRes] = await Promise.all([
+    const [balResult, fxResult] = await Promise.allSettled([
       fetch('/api/balance'),
       fetch('https://api.frankfurter.app/latest?from=EUR&to=USD'),
     ])
+
+    if (balResult.status !== 'fulfilled') {
+      throw new Error('Could not reach balance API')
+    }
+
+    const balRes = balResult.value
     if (!balRes.ok) throw new Error('Bad response from balance API')
     const data = await balRes.json()
     if (data.error) throw new Error(data.error)
 
     const eurAmount = parseFloat(data.balance)
+    if (!Number.isFinite(eurAmount)) {
+      throw new Error('Invalid balance response')
+    }
+
     let rate = 1
-    if (fxRes.ok) {
-      const fxData = await fxRes.json()
-      rate = fxData?.rates?.USD ?? 1
+    if (fxResult.status === 'fulfilled' && fxResult.value.ok) {
+      const fxData = await fxResult.value.json()
+      const usdRate = Number(fxData?.rates?.USD)
+      if (Number.isFinite(usdRate) && usdRate > 0) {
+        rate = usdRate
+      }
     }
     balance.value = (eurAmount * rate).toFixed(4)
   } catch (err) {
@@ -304,8 +333,9 @@ async function loadServices(filter) {
 
     services.value = data
     // Auto-select first "views" match, else first item
-    const viewsService = data.find(s => /views?/i.test(s.name))
-    selectedService.value = (viewsService ?? data[0])?.service ?? null
+    const viewsService = data.find(s => !s.externalUrl && /views?/i.test(s.name))
+    const firstSelectable = data.find(s => !s.externalUrl)
+    selectedService.value = (viewsService ?? firstSelectable)?.service ?? null
   } catch {
     servicesError.value = true
   } finally {

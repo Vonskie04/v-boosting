@@ -16,6 +16,7 @@ const app = express()
 const PORT = process.env.PORT || 3001
 const API_KEY = process.env.ZEFAME_API_KEY
 const ZEFAME_API = 'https://zefame.com/api/v2'
+const FREE_TIKTOK_VIEWS_URL = 'https://zefame.com/free-tiktok-views'
 const APP_PASSWORD = process.env.APP_PASSWORD
 let maxDevices = parseInt(process.env.MAX_DEVICES || '10', 10)
 
@@ -194,12 +195,36 @@ app.get('/api/services', async (req, res) => {
     }
     let data = await response.json()
 
+    if (!Array.isArray(data)) {
+      return res.status(502).json({ error: 'Invalid services response from upstream' })
+    }
+
     if (filter === 'tiktok') {
       data = data.filter(s =>
         /tiktok/i.test(s.name) || /tiktok/i.test(s.category ?? '')
       )
     } else if (filter === 'free') {
-      data = data.filter(s => parseFloat(s.rate) === 0)
+      data = data.filter(s => {
+        const freeByRate = parseFloat(s.rate) === 0
+        const freeByText = /free/i.test(`${s.name ?? ''} ${s.category ?? ''}`)
+        return freeByRate || freeByText
+      })
+    }
+
+    if (filter === 'free' || filter === 'all') {
+      const hasFreeTikTokUrl = data.some(s =>
+        s.externalUrl === FREE_TIKTOK_VIEWS_URL || String(s.name ?? '').includes(FREE_TIKTOK_VIEWS_URL)
+      )
+
+      if (!hasFreeTikTokUrl) {
+        data.push({
+          service: '__free_tiktok_views_page__',
+          name: 'Free TikTok Views Page',
+          category: 'Free',
+          rate: '0',
+          externalUrl: FREE_TIKTOK_VIEWS_URL,
+        })
+      }
     }
 
     res.json(data)
@@ -280,7 +305,16 @@ app.get('/api/balance', async (_req, res) => {
     if (!response.ok) {
       return res.status(502).json({ error: 'Upstream API error', status: response.status })
     }
-    const data = await response.json()
+
+    const raw = await response.text()
+    let data
+    try {
+      data = JSON.parse(raw)
+    } catch {
+      console.error('Balance parse error: invalid JSON payload')
+      return res.status(502).json({ error: 'Invalid balance response from upstream' })
+    }
+
     res.json(data)
   } catch (err) {
     console.error('Balance fetch error:', err.message)

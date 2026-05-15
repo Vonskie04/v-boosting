@@ -1,13 +1,16 @@
 <template>
-  <div class="flex-1 w-full flex items-start justify-center p-6">
-    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl p-8 border border-gray-100 flex flex-col items-center relative">
+  <div class="flex-1 w-full flex items-start justify-center p-3 sm:p-6">
+    <div class="w-full max-w-6xl bg-white/82 backdrop-blur-xl rounded-3xl shadow-[0_26px_80px_rgba(24,57,109,0.16)] p-4 sm:p-8 border border-[#d8e2f2] flex flex-col items-center relative overflow-hidden">
+
+      <div class="absolute -left-28 -top-24 size-72 rounded-full bg-[#ffe0b8]/55 blur-3xl"></div>
+      <div class="absolute -right-24 top-8 size-72 rounded-full bg-[#d2e4ff]/70 blur-3xl"></div>
 
       <!-- Balance widget -->
-      <div class="absolute top-4 right-4">
+      <div class="w-full flex justify-end sm:absolute sm:top-4 sm:right-4 z-10 mb-3 sm:mb-0">
         <button
           type="button"
           @click="toggleBalance"
-          class="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors"
+          class="flex items-center gap-1.5 text-sm font-semibold text-[#456187] hover:text-[#20314c] bg-white/90 hover:bg-white border border-[#d8e2f2] rounded-xl px-3.5 py-2 shadow-sm transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="5" width="20" height="14" rx="2"/>
@@ -24,19 +27,19 @@
 
         <div
           v-if="balanceOpen"
-          class="absolute right-0 mt-1.5 w-52 bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-10"
+          class="absolute left-0 right-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-56 bg-white border border-[#d8e2f2] rounded-2xl shadow-[0_18px_44px_rgba(27,57,102,0.2)] p-4 z-10"
         >
-          <div v-if="balanceLoading" class="text-sm text-gray-400">Loading...</div>
-          <div v-else-if="balanceError" class="text-sm text-red-500">{{ balanceError }}</div>
+          <div v-if="balanceLoading" class="text-sm text-[#6a7f9f]">Loading...</div>
+          <div v-else-if="balanceError" class="text-sm text-rose-600">{{ balanceError }}</div>
           <div v-else-if="balance !== null" class="flex flex-col gap-1">
-            <p class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Account Balance</p>
-            <p class="text-2xl font-bold text-gray-800">$ {{ balance }}</p>
+            <p class="text-xs text-[#6a7f9f] uppercase tracking-wide font-semibold">Account Balance</p>
+            <p class="text-2xl font-bold text-[#153663]">$ {{ balance }}</p>
           </div>
           <button
             type="button"
             @click="fetchBalance"
             :disabled="balanceLoading"
-            class="mt-3 w-full text-xs text-gray-500 hover:text-gray-800 flex items-center justify-center gap-1 disabled:opacity-40 transition-colors"
+            class="mt-3 w-full text-xs font-semibold text-[#5a7193] hover:text-[#1f3150] rounded-lg bg-[#f3f7ff] py-1.5 flex items-center justify-center gap-1 disabled:opacity-40 transition-colors"
           >
             <svg :class="balanceLoading ? 'animate-spin' : ''" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 12a9 9 0 1 1-9-9 9 9 0 0 1 6.36 2.64L21 3v6h-6"/>
@@ -46,20 +49,21 @@
         </div>
       </div>
 
-      <h1>
-        BOOSTER AHA
-      </h1>
+      <div class="relative z-1 text-center">
+        <p class="text-[11px] uppercase tracking-[0.24em] text-[#6a7f9f] font-semibold">v-boost toolkit</p>
+        <h1 class="mt-2 text-2xl sm:text-4xl font-semibold text-[#1a2944]">Boosting Board</h1>
+      </div>
 
-      <div class="w-full mt-6">
-        <div class="flex flex-col gap-4 max-w-md mx-auto">
+      <div class="w-full mt-4 sm:mt-6 relative z-1">
+        <div class="flex flex-col gap-5 max-w-2xl mx-auto">
 
           <!-- Category dropdown -->
           <div class="flex flex-col gap-2 text-left">
-            <label for="category" class="text-sm font-medium text-gray-700">Category</label>
+            <label for="category" class="text-sm font-semibold text-[#22334f]">Category</label>
             <select
               id="category"
               v-model="selectedCategory"
-              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
+              class="w-full border border-[#cfdceb] rounded-xl px-4 py-3 focus:outline-none focus:border-[#3b78da] focus:ring-4 focus:ring-[#3b78da]/15 bg-white"
               :disabled="loading || servicesLoading"
             >
               <option v-for="cat in categories" :key="cat.value" :value="cat.value">
@@ -71,12 +75,12 @@
           <!-- Service selector -->
           <div class="flex flex-col gap-2 text-left">
             <div class="flex items-center justify-between">
-              <label for="service" class="text-sm font-medium text-gray-700">Service</label>
+              <label for="service" class="text-sm font-semibold text-[#22334f]">Service</label>
               <button
                 type="button"
                 @click="loadServices(selectedCategory)"
                 :disabled="loading || servicesLoading"
-                class="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-40"
+                class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4f6485] hover:text-[#1f3150] rounded-lg border border-[#d8e2f2] bg-white px-3 py-1.5 transition-colors disabled:opacity-40"
                 title="Refresh services"
               >
                 <svg :class="servicesLoading ? 'animate-spin' : ''" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -89,7 +93,7 @@
               v-if="!servicesLoading && services.length"
               id="service"
               v-model="selectedService"
-              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
+              class="w-full border border-[#cfdceb] rounded-xl px-4 py-3 focus:outline-none focus:border-[#3b78da] focus:ring-4 focus:ring-[#3b78da]/15 bg-white"
               :disabled="loading"
             >
               <option
@@ -101,31 +105,30 @@
                 {{ svc.externalUrl ? `${svc.name} (link)` : svc.name }}
               </option>
             </select>
-            <div v-else-if="servicesLoading" class="text-sm text-gray-400 px-1">Loading services...</div>
-            <div v-else-if="servicesError" class="text-sm text-red-500 px-1">Could not load services. Is the server running?</div>
-            <div v-else class="text-sm text-gray-400 px-1">No services found for this category.</div>
+            <div v-else-if="servicesLoading" class="text-sm text-[#6a7f9f] px-1">Loading services...</div>
+            <div v-else-if="servicesError" class="text-sm text-rose-600 px-1">Could not load services. Is the server running?</div>
+            <div v-else class="text-sm text-[#6a7f9f] px-1">No services found for this category.</div>
             <a
               v-if="selectedCategory === 'free'"
               :href="FREE_TIKTOK_VIEWS_URL"
               target="_blank"
               rel="noopener noreferrer"
-              class="text-xs text-blue-600 hover:text-blue-700 underline underline-offset-2"
+              class="text-xs font-semibold text-[#145fc9] hover:text-[#114ea5] underline underline-offset-2"
             >
               Open Free TikTok Views page
             </a>
 
             <div
               v-if="selectedCategory === 'free'"
-              class="mt-2 rounded-xl border border-gray-200 bg-white p-2"
+              class="mt-2 rounded-2xl border border-[#d8e2f2] bg-white p-2.5 shadow-[0_12px_30px_rgba(20,62,120,0.08)]"
             >
               <iframe
                 :src="FREE_TIKTOK_VIEWS_EMBED_URL"
                 title="Free TikTok Views"
                 loading="lazy"
-                class="w-full rounded-lg border border-gray-200 bg-white"
-                style="height: 620px;"
+                class="free-embed-frame w-full rounded-xl border border-[#d8e2f2] bg-white"
               ></iframe>
-              <p class="px-1 pt-2 text-[11px] text-gray-500">
+              <p class="px-1 pt-2 text-[11px] text-[#6a7f9f]">
                 If the page does not render correctly, use the link above to open it in a new tab.
               </p>
             </div>
@@ -133,27 +136,27 @@
 
           <!-- TikTok URL -->
           <div class="flex flex-col gap-2 text-left">
-            <label for="tiktok-url" class="text-sm font-medium text-gray-700">TikTok URL</label>
+            <label for="tiktok-url" class="text-sm font-semibold text-[#22334f]">TikTok URL</label>
             <input
               id="tiktok-url"
               v-model="url"
               type="url"
               placeholder="https://www.tiktok.com/@user/video/..."
-              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              class="w-full border border-[#cfdceb] rounded-xl px-4 py-3 focus:outline-none focus:border-[#3b78da] focus:ring-4 focus:ring-[#3b78da]/15"
               :disabled="loading"
             />
           </div>
 
           <!-- Quantity -->
           <div class="flex flex-col gap-2 text-left">
-            <label for="quantity" class="text-sm font-medium text-gray-700">Quantity</label>
-            <div class="flex gap-2">
+            <label for="quantity" class="text-sm font-semibold text-[#22334f]">Quantity</label>
+            <div class="flex flex-wrap gap-2">
               <button
                 type="button"
                 @click="setPresetQuantity(100)"
                 :disabled="loading"
-                class="px-3 py-1.5 rounded-md border text-sm font-medium transition-colors"
-                :class="!showCustomQuantity && quantity === 100 ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'"
+                class="px-3 py-2 rounded-xl border text-sm font-semibold transition-colors"
+                :class="!showCustomQuantity && quantity === 100 ? 'bg-[#145fc9] text-white border-[#145fc9]' : 'bg-white text-[#4b6388] border-[#cfdceb] hover:bg-[#edf3fd]'"
               >
                 100
               </button>
@@ -161,8 +164,8 @@
                 type="button"
                 @click="setPresetQuantity(1000)"
                 :disabled="loading"
-                class="px-3 py-1.5 rounded-md border text-sm font-medium transition-colors"
-                :class="!showCustomQuantity && quantity === 1000 ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'"
+                class="px-3 py-2 rounded-xl border text-sm font-semibold transition-colors"
+                :class="!showCustomQuantity && quantity === 1000 ? 'bg-[#145fc9] text-white border-[#145fc9]' : 'bg-white text-[#4b6388] border-[#cfdceb] hover:bg-[#edf3fd]'"
               >
                 1000
               </button>
@@ -170,27 +173,27 @@
                 type="button"
                 @click="showCustomQuantity = !showCustomQuantity"
                 :disabled="loading"
-                class="px-3 py-1.5 rounded-md border text-sm font-medium transition-colors"
-                :class="showCustomQuantity ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'"
+                class="px-3 py-2 rounded-xl border text-sm font-semibold transition-colors"
+                :class="showCustomQuantity ? 'bg-[#145fc9] text-white border-[#145fc9]' : 'bg-white text-[#4b6388] border-[#cfdceb] hover:bg-[#edf3fd]'"
               >
                 Custom
               </button>
             </div>
-            <div v-if="showCustomQuantity" class="flex gap-2">
+            <div v-if="showCustomQuantity" class="flex flex-col sm:flex-row gap-2">
               <input
                 v-model.number="customQuantity"
                 type="number"
                 min="100"
                 max="100000"
                 placeholder="Enter custom quantity"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                class="w-full border border-[#cfdceb] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#3b78da] focus:ring-4 focus:ring-[#3b78da]/15"
                 :disabled="loading"
               />
               <button
                 type="button"
                 @click="applyCustomQuantity"
                 :disabled="loading"
-                class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium bg-white hover:bg-gray-100"
+                class="px-3 py-2.5 rounded-xl border border-[#cfdceb] text-sm font-semibold text-[#4f6485] bg-white hover:bg-[#edf3fd]"
               >
                 Set
               </button>
@@ -198,11 +201,11 @@
           </div>
 
           <!-- Error -->
-          <p v-if="error" class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{{ error }}</p>
+          <p v-if="error" class="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2.5">{{ error }}</p>
 
           <!-- Success -->
-          <div v-if="orderId" class="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-            <div class="flex items-center justify-between gap-3">
+          <div v-if="orderId" class="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <p class="font-semibold">Order placed successfully!</p>
                 <p class="mt-1">Order ID: <span class="font-mono font-bold">{{ orderId }}</span></p>
@@ -210,7 +213,7 @@
               <button
                 type="button"
                 @click="resetOrder"
-                class="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-md border border-green-400 text-green-700 hover:bg-green-100 transition-colors"
+                class="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-100 transition-colors"
               >
                 + New Order
               </button>
@@ -221,7 +224,7 @@
           <button
             @click="submitBoost"
             :disabled="loading || !url || !quantity || !selectedService"
-            class="w-full bg-gray-800 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg hover:bg-gray-700 hover:-translate-y-0.5 transform transition-all duration-200 cursor-pointer tracking-wide disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md"
+            class="w-full bg-[#145fc9] text-white font-semibold py-3 px-4 rounded-xl shadow-md hover:shadow-lg hover:bg-[#114ea5] hover:-translate-y-0.5 transform transition-all duration-200 cursor-pointer tracking-wide disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md"
           >
             <span v-if="loading">Boosting...</span>
             <span v-else>Boost</span>
@@ -402,5 +405,14 @@ async function submitBoost() {
 </script>
 
 <style scoped>
+.free-embed-frame {
+  height: 620px;
+}
 
+@media (max-width: 640px) {
+  .free-embed-frame {
+    height: 72vh;
+    min-height: 460px;
+  }
+}
 </style>

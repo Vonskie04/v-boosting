@@ -1,79 +1,79 @@
 <template>
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-[#0f213c]/45 backdrop-blur-sm px-4"
     @click.self="$emit('close')"
   >
-    <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden">
+    <div class="w-full max-w-xl bg-white/90 border border-[#d8e2f2] rounded-3xl shadow-[0_24px_80px_rgba(13,37,74,0.24)] overflow-hidden">
 
       <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-[#e2eaf6] bg-linear-to-r from-white to-[#f4f8ff]">
         <div>
-          <h2 class="text-base font-semibold text-gray-900">Active Devices</h2>
-          <p class="text-xs text-gray-400 mt-0.5">{{ sessions.length }} / {{ maxDevices }} slots used</p>
+          <h2 class="text-base font-semibold text-[#1d2d46]">Active Devices</h2>
+          <p class="text-xs text-[#6a7f9f] mt-0.5">{{ sessions.length }} / {{ maxDevices }} slots used</p>
         </div>
         <button
           @click="$emit('close')"
-          class="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors leading-none"
+          class="text-[#607592] hover:text-[#2a3d5c] p-1.5 rounded-lg hover:bg-[#eaf0fb] transition-colors leading-none"
         >
           ✕
         </button>
       </div>
 
       <!-- Device limit control -->
-      <div class="px-6 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-3">
-        <span class="text-sm text-gray-600">Device limit:</span>
+      <div class="px-6 py-3 bg-[#f7faff] border-b border-[#e2eaf6] flex flex-wrap items-center gap-3">
+        <span class="text-sm text-[#475d7f] font-medium">Device limit:</span>
         <input
           v-model.number="newLimit"
           type="number"
           min="1"
           max="100"
-          class="w-16 rounded border border-gray-300 px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-gray-800"
+          class="w-16 rounded-lg border border-[#cfdcee] px-2 py-1.5 text-sm text-center text-[#20304b] bg-white focus:outline-none focus:ring-4 focus:ring-[#3c77d8]/15 focus:border-[#3c77d8]"
         />
         <button
           @click="updateLimit"
-          class="text-sm text-gray-900 font-medium hover:underline"
+          class="text-sm text-white font-semibold bg-[#155fc8] hover:bg-[#114ea5] px-3 py-1.5 rounded-lg transition-colors"
         >
           Apply
         </button>
-        <span v-if="limitMsg" class="text-xs text-green-600">{{ limitMsg }}</span>
+        <span v-if="limitMsg" class="text-xs text-emerald-700 font-medium">{{ limitMsg }}</span>
       </div>
 
       <!-- Sessions list -->
-      <div class="max-h-80 overflow-y-auto divide-y divide-gray-50">
-        <div v-if="loading" class="text-center text-sm text-gray-400 py-8">Loading...</div>
+      <div class="max-h-80 overflow-y-auto divide-y divide-[#eef3fb]">
+        <div v-if="loading" class="text-center text-sm text-[#6a7f9f] py-8">Loading...</div>
         <div
           v-else-if="sessions.length === 0"
-          class="text-center text-sm text-gray-400 py-8"
+          class="text-center text-sm text-[#6a7f9f] py-8"
         >
           No active sessions.
         </div>
         <div
           v-for="session in sessions"
           :key="session.id"
-          class="flex items-center justify-between gap-4 px-6 py-3"
+          class="flex items-center justify-between gap-4 px-6 py-3.5 bg-white"
         >
           <div class="min-w-0">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-gray-900 truncate">
+              <span class="text-sm font-semibold text-[#20314d] truncate">
                 {{ deviceLabel(session.deviceInfo) }}
               </span>
               <span
                 v-if="session.id === currentToken"
-                class="shrink-0 text-xs bg-gray-900 text-white px-1.5 py-0.5 rounded-full"
+                class="shrink-0 text-xs bg-[#155fc8] text-white px-2 py-0.5 rounded-full"
               >
                 you
               </span>
             </div>
-            <p class="text-xs text-gray-400 mt-0.5 truncate">
+            <p class="text-xs text-[#6a7f9f] mt-0.5 truncate">
               {{ session.ipAddress }} &bull; Connected {{ timeAgo(session.createdAt) }}
             </p>
-            <p class="text-xs text-gray-400">Last seen {{ timeAgo(session.lastSeen) }}</p>
+            <p class="text-xs text-[#6a7f9f]">Last seen {{ timeAgo(session.lastSeen) }}</p>
           </div>
 
           <button
             v-if="session.id !== currentToken"
             @click="disconnect(session.id)"
-            class="shrink-0 text-xs font-medium text-red-600 hover:underline"
+            class="shrink-0 text-xs font-semibold text-rose-600 hover:text-rose-700"
           >
             Disconnect
           </button>
@@ -81,12 +81,12 @@
       </div>
 
       <!-- Footer -->
-      <div class="px-6 py-3 border-t border-gray-100 flex justify-between items-center">
-        <span class="text-xs text-gray-400">Auto-refreshes every 10s</span>
+      <div class="px-6 py-3 border-t border-[#e2eaf6] bg-[#f9fbff] flex justify-between items-center gap-3">
+        <span class="text-xs text-[#6a7f9f]">Auto-refreshes every 10s</span>
         <button
           @click="disconnectAll"
           :disabled="sessions.filter(s => s.id !== currentToken).length === 0"
-          class="text-sm font-medium text-red-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+          class="text-sm font-semibold text-rose-600 hover:text-rose-700 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Disconnect all others
         </button>

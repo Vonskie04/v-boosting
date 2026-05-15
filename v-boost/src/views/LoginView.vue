@@ -1,32 +1,60 @@
 <template>
-  <main class="min-h-screen flex items-center justify-center px-6">
-    <form
-      class="w-full max-w-sm bg-white shadow-sm border border-gray-200 rounded-xl p-6 space-y-4"
-      @submit.prevent="handleSubmit"
-    >
-      <h1 class="text-lg font-semibold text-gray-900">Password Check</h1>
+  <main class="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-10">
+    <section class="w-full max-w-5xl rounded-3xl border border-[#d8e1ef] bg-white/75 backdrop-blur-xl shadow-[0_24px_90px_rgba(19,55,110,0.16)] overflow-hidden animate-[fadeIn_.55s_ease-out]">
+      <div class="grid md:grid-cols-[1.08fr_1fr]">
+        <aside class="order-2 md:order-1 relative p-6 sm:p-10 text-white" style="background: linear-gradient(140deg, #173563, #20447d 52%, #114a8d);">
+          <div class="absolute -top-28 -right-20 size-72 rounded-full bg-[#79a8ff]/30 blur-3xl"></div>
+          <div class="absolute -bottom-20 -left-20 size-72 rounded-full bg-[#ffbf7a]/30 blur-3xl"></div>
+          <div class="relative">
+            <p class="text-[11px] uppercase tracking-[0.24em] text-white/70 font-semibold">v-boost</p>
+            <h1 class="mt-4 text-2xl sm:text-4xl font-semibold leading-tight">Secure Access Gateway</h1>
+            <p class="mt-4 text-sm sm:text-base text-blue-100/90 max-w-md">
+              Manage TikTok services, logs, and session control from one focused dashboard.
+            </p>
+            <div class="mt-6 sm:mt-8 grid grid-cols-2 gap-3 max-w-sm">
+              <div class="rounded-xl border border-white/25 bg-white/10 px-3 py-3">
+                <p class="text-[10px] uppercase tracking-[0.18em] text-white/75">Services</p>
+                <p class="mt-1 text-xl font-semibold">Live</p>
+              </div>
+              <div class="rounded-xl border border-white/25 bg-white/10 px-3 py-3">
+                <p class="text-[10px] uppercase tracking-[0.18em] text-white/75">Security</p>
+                <p class="mt-1 text-xl font-semibold">Tokenized</p>
+              </div>
+            </div>
+          </div>
+        </aside>
 
-      <label class="block text-sm text-gray-700" for="password">Password</label>
-      <input
-        id="password"
-        v-model="passwordInput"
-        type="password"
-        class="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-gray-800"
-        placeholder="Enter password"
-        autocomplete="current-password"
-      />
+        <form
+          class="order-1 md:order-2 bg-white/90 p-6 sm:p-10 flex flex-col justify-center"
+          @submit.prevent="handleSubmit"
+        >
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[#5d6f8e]">Authentication</p>
+          <h2 class="mt-2 text-2xl font-semibold text-[#172235]">Enter Admin Password</h2>
+          <p class="mt-2 text-sm text-[#607089]">Only authorized sessions can access dashboard controls.</p>
 
-      <button
-        type="submit"
-        :disabled="status === 'loading'"
-        class="w-full rounded-md bg-gray-900 text-white py-2 font-medium hover:bg-gray-800 transition-colors disabled:opacity-60"
-      >
-        {{ status === 'loading' ? 'Checking...' : 'Submit' }}
-      </button>
+          <label class="mt-7 block text-sm font-medium text-[#22324a]" for="password">Password</label>
+          <input
+            id="password"
+            v-model="passwordInput"
+            type="password"
+            class="mt-2 w-full rounded-xl border border-[#cfdae9] bg-white px-4 py-3 text-[#182439] outline-none transition focus:border-[#3a75d8] focus:ring-4 focus:ring-[#3a75d8]/15"
+            placeholder="Enter password"
+            autocomplete="current-password"
+          />
 
-      <p v-if="status === 'empty'" class="text-sm text-yellow-600">Please enter a password.</p>
-      <p v-else-if="status === 'error'" class="text-sm text-red-700">{{ errorMessage }}</p>
-    </form>
+          <button
+            type="submit"
+            :disabled="status === 'loading'"
+            class="mt-5 w-full rounded-xl bg-[#145ec7] text-white py-3 font-semibold tracking-wide hover:bg-[#114ea5] transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
+          >
+            {{ status === 'loading' ? 'Checking...' : 'Enter Dashboard' }}
+          </button>
+
+          <p v-if="status === 'empty'" class="mt-3 text-sm text-amber-700">Please enter a password.</p>
+          <p v-else-if="status === 'error'" class="mt-3 text-sm text-red-700">{{ errorMessage }}</p>
+        </form>
+      </div>
+    </section>
   </main>
 </template>
 
@@ -68,3 +96,16 @@ async function handleSubmit() {
   }
 }
 </script>
+
+<style scoped>
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

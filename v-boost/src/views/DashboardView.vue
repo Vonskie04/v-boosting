@@ -2,12 +2,20 @@
   <div class="min-h-screen w-full flex flex-col">
     <nav class="sticky top-0 z-40 w-full border-b border-[#d8e2f2] bg-white/70 backdrop-blur-xl">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div>
+        <div class="order-1">
           <p class="text-[11px] uppercase tracking-[0.2em] text-[#667997] font-semibold">Control Center</p>
           <h1 class="text-lg sm:text-xl font-semibold text-[#1a2740]">v-boost Dashboard</h1>
         </div>
 
-        <div class="sm:ml-auto w-full sm:w-auto flex items-center gap-2 rounded-xl border border-[#d8e2f2] bg-white px-2 py-1.5 shadow-[0_6px_18px_rgba(38,72,132,0.08)]">
+        <button
+          class="order-2 sm:order-3 self-end sm:self-auto sm:ml-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-[#374b69] border border-[#d3deee] bg-white hover:bg-[#eef3fb] transition-colors"
+          @click="logout"
+        >
+          <LogOut :size="16" class="shrink-0" aria-hidden="true" />
+          <span>Logout</span>
+        </button>
+
+        <div class="order-3 sm:order-2 sm:ml-auto w-full sm:w-auto flex items-center gap-2 rounded-xl border border-[#d8e2f2] bg-white px-2 py-1.5 shadow-[0_6px_18px_rgba(38,72,132,0.08)]">
           <button
             v-for="tab in tabs"
             :key="tab.id"
@@ -20,13 +28,6 @@
             {{ tab.label }}
           </button>
         </div>
-
-        <button
-          class="sm:ml-2 w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold text-[#374b69] border border-[#d3deee] bg-white hover:bg-[#eef3fb] transition-colors"
-          @click="logout"
-        >
-          Logout
-        </button>
       </div>
     </nav>
 
@@ -44,6 +45,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { LogOut } from '@lucide/vue'
 import BoostingBoard from '../components/BoostingBoard.vue'
 import OrderLogs from '../components/OrderLogs.vue'
 import AdminPanel from '../components/AdminPanel.vue'

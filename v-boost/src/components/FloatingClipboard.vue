@@ -9,13 +9,15 @@
       class="pointer-events-auto overflow-hidden rounded-2xl border border-white/45 bg-white/35 shadow-[0_12px_40px_rgba(17,48,92,0.22)] backdrop-blur-xl"
     >
       <div
-        class="flex items-center justify-between border-b border-white/45 px-3 py-2 cursor-grab active:cursor-grabbing"
-        @pointerdown="startDrag"
+        class="flex items-center justify-between border-b border-white/45 px-3 py-2 cursor-grab active:cursor-grabbing select-none touch-none"
+        @mousedown="startDrag"
+        @touchstart.prevent="startDrag"
       >
         <button
           class="text-xs font-semibold uppercase tracking-[0.16em] text-[#2f4569]"
           type="button"
-          @pointerdown.stop
+          @mousedown.stop
+          @touchstart.stop
           @click="isOpen = !isOpen"
         >
           Floating Clipboard
@@ -24,7 +26,8 @@
           <button
             class="rounded-lg border border-white/55 bg-white/45 px-2 py-1 text-xs font-medium text-[#2f4569] hover:bg-white/70"
             type="button"
-            @pointerdown.stop
+            @mousedown.stop
+            @touchstart.stop
             @click="clearText"
           >
             Clear
@@ -33,7 +36,8 @@
             class="rounded-lg border border-white/55 bg-white/45 px-2 py-1 text-xs font-medium text-[#2f4569] hover:bg-white/70"
             type="button"
             aria-label="Close floating clipboard"
-            @pointerdown.stop
+            @mousedown.stop
+            @touchstart.stop
             @click="closeWidget"
           >
             Close
@@ -71,16 +75,19 @@
 
   <button
     v-else
-    class="fixed bottom-4 right-4 z-50 rounded-xl border border-white/60 bg-white/45 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#2f4569] shadow-[0_10px_30px_rgba(17,48,92,0.2)] backdrop-blur-xl hover:bg-white/65"
+    class="fixed bottom-4 right-4 z-50 inline-flex items-center justify-center rounded-xl border border-white/60 bg-white/45 p-2.5 text-[#2f4569] shadow-[0_10px_30px_rgba(17,48,92,0.2)] backdrop-blur-xl hover:bg-white/65"
     type="button"
+    aria-label="Open floating clipboard"
+    title="Open floating clipboard"
     @click="isVisible = true"
   >
-    Clipboard
+    <ClipboardList :size="18" class="shrink-0" aria-hidden="true" />
   </button>
 </template>
 
 <script setup>
 import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { ClipboardList } from '@lucide/vue'
 
 const STORAGE_KEY_TEXT = 'vboost_floating_clipboard_text'
 const STORAGE_KEY_POSITION = 'vboost_floating_clipboard_position'
@@ -123,22 +130,35 @@ function setStatus(message) {
 }
 
 function startDrag(e) {
+  const point = 'touches' in e ? e.touches[0] : e
+  if (!point) return
+
   dragState.active = true
-  dragState.offsetX = e.clientX - position.value.x
-  dragState.offsetY = e.clientY - position.value.y
+  dragState.offsetX = point.clientX - position.value.x
+  dragState.offsetY = point.clientY - position.value.y
 }
 
-function onPointerMove(e) {
+function updateDragPosition(clientX, clientY) {
   if (!dragState.active) return
 
   const next = clampPosition(
-    e.clientX - dragState.offsetX,
-    e.clientY - dragState.offsetY,
+    clientX - dragState.offsetX,
+    clientY - dragState.offsetY,
   )
   position.value = next
 }
 
-function onPointerUp() {
+function onMouseMove(e) {
+  updateDragPosition(e.clientX, e.clientY)
+}
+
+function onTouchMove(e) {
+  if (!dragState.active || e.touches.length === 0) return
+  e.preventDefault()
+  updateDragPosition(e.touches[0].clientX, e.touches[0].clientY)
+}
+
+function onDragEnd() {
   dragState.active = false
 }
 
@@ -221,16 +241,22 @@ watch(position, (value) => {
 onMounted(() => {
   loadStoredState()
   position.value = clampPosition(position.value.x, position.value.y)
-  window.addEventListener('pointermove', onPointerMove)
-  window.addEventListener('pointerup', onPointerUp)
+  window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mouseup', onDragEnd)
+  window.addEventListener('touchmove', onTouchMove, { passive: false })
+  window.addEventListener('touchend', onDragEnd)
+  window.addEventListener('touchcancel', onDragEnd)
   window.addEventListener('resize', onResize)
 })
 
 onUnmounted(() => {
   clearTimeout(copiedTimer)
   clearTimeout(statusTimer)
-  window.removeEventListener('pointermove', onPointerMove)
-  window.removeEventListener('pointerup', onPointerUp)
+  window.removeEventListener('mousemove', onMouseMove)
+  window.removeEventListener('mouseup', onDragEnd)
+  window.removeEventListener('touchmove', onTouchMove)
+  window.removeEventListener('touchend', onDragEnd)
+  window.removeEventListener('touchcancel', onDragEnd)
   window.removeEventListener('resize', onResize)
 })
 </script>

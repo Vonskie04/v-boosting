@@ -1,21 +1,44 @@
 <template>
-  <div class="pointer-events-none fixed bottom-4 right-4 z-50 w-[min(92vw,340px)]">
-    <div class="pointer-events-auto overflow-hidden rounded-2xl border border-white/45 bg-white/35 shadow-[0_12px_40px_rgba(17,48,92,0.22)] backdrop-blur-xl">
-      <div class="flex items-center justify-between border-b border-white/45 px-3 py-2">
+  <div
+    v-if="isVisible"
+    class="pointer-events-none fixed z-50 w-[min(92vw,340px)]"
+    :style="{ left: `${position.x}px`, top: `${position.y}px` }"
+  >
+    <div
+      ref="panelRef"
+      class="pointer-events-auto overflow-hidden rounded-2xl border border-white/45 bg-white/35 shadow-[0_12px_40px_rgba(17,48,92,0.22)] backdrop-blur-xl"
+    >
+      <div
+        class="flex items-center justify-between border-b border-white/45 px-3 py-2 cursor-grab active:cursor-grabbing"
+        @pointerdown="startDrag"
+      >
         <button
           class="text-xs font-semibold uppercase tracking-[0.16em] text-[#2f4569]"
           type="button"
+          @pointerdown.stop
           @click="isOpen = !isOpen"
         >
           Floating Clipboard
         </button>
-        <button
-          class="rounded-lg border border-white/55 bg-white/45 px-2 py-1 text-xs font-medium text-[#2f4569] hover:bg-white/70"
-          type="button"
-          @click="clearText"
-        >
-          Clear
-        </button>
+        <div class="flex items-center gap-1">
+          <button
+            class="rounded-lg border border-white/55 bg-white/45 px-2 py-1 text-xs font-medium text-[#2f4569] hover:bg-white/70"
+            type="button"
+            @pointerdown.stop
+            @click="clearText"
+          >
+            Clear
+          </button>
+          <button
+            class="rounded-lg border border-white/55 bg-white/45 px-2 py-1 text-xs font-medium text-[#2f4569] hover:bg-white/70"
+            type="button"
+            aria-label="Close floating clipboard"
+            @pointerdown.stop
+            @click="closeWidget"
+          >
+            Close
+          </button>
+        </div>
       </div>
 
       <div v-show="isOpen" class="space-y-2 p-3">
@@ -45,58 +68,169 @@
       </div>
     </div>
   </div>
+
+  <button
+    v-else
+    class="fixed bottom-4 right-4 z-50 rounded-xl border border-white/60 bg-white/45 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#2f4569] shadow-[0_10px_30px_rgba(17,48,92,0.2)] backdrop-blur-xl hover:bg-white/65"
+    type="button"
+    @click="isVisible = true"
+  >
+    Clipboard
+  </button>
 </template>
 
 <script setup>
-import { onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
+
+const STORAGE_KEY_TEXT = 'vboost_floating_clipboard_text'
+const STORAGE_KEY_POSITION = 'vboost_floating_clipboard_position'
 
 const text = ref('')
 const copied = ref(false)
 const isOpen = ref(true)
 const status = ref('')
+const isVisible = ref(true)
+const panelRef = ref(null)
+const position = ref({ x: 16, y: 120 })
+
+const dragState = {
+  active: false,
+  offsetX: 0,
+  offsetY: 0,
+}
+
 let copiedTimer
+let statusTimer
+
+function clampPosition(nextX, nextY) {
+  const panelWidth = panelRef.value?.offsetWidth ?? 340
+  const panelHeight = panelRef.value?.offsetHeight ?? 240
+  const maxX = Math.max(8, window.innerWidth - panelWidth - 8)
+  const maxY = Math.max(8, window.innerHeight - panelHeight - 8)
+
+  return {
+    x: Math.min(Math.max(8, nextX), maxX),
+    y: Math.min(Math.max(8, nextY), maxY),
+  }
+}
+
+function setStatus(message) {
+  status.value = message
+  clearTimeout(statusTimer)
+  statusTimer = setTimeout(() => {
+    status.value = ''
+  }, 3000)
+}
+
+function startDrag(e) {
+  dragState.active = true
+  dragState.offsetX = e.clientX - position.value.x
+  dragState.offsetY = e.clientY - position.value.y
+}
+
+function onPointerMove(e) {
+  if (!dragState.active) return
+
+  const next = clampPosition(
+    e.clientX - dragState.offsetX,
+    e.clientY - dragState.offsetY,
+  )
+  position.value = next
+}
+
+function onPointerUp() {
+  dragState.active = false
+}
+
+function closeWidget() {
+  isVisible.value = false
+}
 
 async function copyText() {
   if (!navigator.clipboard) {
-    status.value = 'Clipboard not available in this browser context.'
+    setStatus('Clipboard not available in this browser context.')
     return
   }
 
   try {
     await navigator.clipboard.writeText(text.value)
+    localStorage.setItem(STORAGE_KEY_TEXT, text.value)
     copied.value = true
-    status.value = 'Copied to clipboard.'
+    setStatus('Copied to clipboard.')
 
     clearTimeout(copiedTimer)
     copiedTimer = setTimeout(() => {
       copied.value = false
     }, 1200)
   } catch {
-    status.value = 'Unable to copy. Check browser permissions.'
+    setStatus('Unable to copy. Check browser permissions.')
   }
 }
 
 async function pasteText() {
   if (!navigator.clipboard) {
-    status.value = 'Clipboard not available in this browser context.'
+    setStatus('Clipboard not available in this browser context.')
     return
   }
 
   try {
     text.value = await navigator.clipboard.readText()
-    status.value = 'Pasted from clipboard.'
+    setStatus('Pasted from clipboard.')
   } catch {
-    status.value = 'Unable to paste. Check browser permissions.'
+    setStatus('Unable to paste. Check browser permissions.')
   }
 }
 
 function clearText() {
   text.value = ''
   copied.value = false
-  status.value = 'Cleared.'
+  setStatus('Cleared.')
 }
+
+function loadStoredState() {
+  const savedText = localStorage.getItem(STORAGE_KEY_TEXT)
+  if (savedText !== null) {
+    text.value = savedText
+  }
+
+  const savedPosition = localStorage.getItem(STORAGE_KEY_POSITION)
+  if (savedPosition) {
+    try {
+      const parsed = JSON.parse(savedPosition)
+      if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
+        position.value = parsed
+      }
+    } catch {
+      // Ignore malformed localStorage data.
+    }
+  }
+}
+
+function onResize() {
+  position.value = clampPosition(position.value.x, position.value.y)
+}
+
+watch(text, (value) => {
+  localStorage.setItem(STORAGE_KEY_TEXT, value)
+})
+
+watch(position, (value) => {
+  localStorage.setItem(STORAGE_KEY_POSITION, JSON.stringify(value))
+}, { deep: true })
+
+onMounted(() => {
+  loadStoredState()
+  position.value = clampPosition(position.value.x, position.value.y)
+  window.addEventListener('pointermove', onPointerMove)
+  window.addEventListener('pointerup', onPointerUp)
+  window.addEventListener('resize', onResize)
+})
 
 onUnmounted(() => {
   clearTimeout(copiedTimer)
+  clearTimeout(statusTimer)
+  window.removeEventListener('pointermove', onPointerMove)
+  window.removeEventListener('pointerup', onPointerUp)
+  window.removeEventListener('resize', onResize)
 })
 </script>

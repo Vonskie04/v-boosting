@@ -14,7 +14,13 @@
             <div class="mt-6 sm:mt-8 grid grid-cols-2 gap-3 max-w-sm">
               <div class="rounded-xl border border-white/25 bg-white/10 px-3 py-3">
                 <p class="text-[10px] uppercase tracking-[0.18em] text-white/75">Services</p>
-                <p class="mt-1 text-xl font-semibold">Live</p>
+                <p class="mt-1 inline-flex items-center gap-2 text-xl font-semibold">
+                  <span
+                    class="inline-block size-2.5 rounded-full"
+                    :class="serviceStatus === 'live' ? 'bg-emerald-400' : serviceStatus === 'inactive' ? 'bg-rose-400' : 'bg-white/60'"
+                  />
+                  {{ serviceStatus === 'live' ? 'Live' : serviceStatus === 'inactive' ? 'Inactive' : 'Checking' }}
+                </p>
               </div>
               <div class="rounded-xl border border-white/25 bg-white/10 px-3 py-3">
                 <p class="text-[10px] uppercase tracking-[0.18em] text-white/75">Security</p>
@@ -59,7 +65,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { AUTH_FLAG } from '../router'
 
@@ -67,6 +73,36 @@ const router = useRouter()
 const passwordInput = ref('')
 const status = ref('idle')
 const errorMessage = ref('')
+const serviceStatus = ref('checking')
+let serviceStatusInterval
+
+async function checkServiceStatus() {
+  try {
+    const res = await fetch('/api/services?filter=tiktok', {
+      method: 'GET',
+      cache: 'no-store',
+    })
+
+    if (!res.ok) {
+      serviceStatus.value = 'inactive'
+      return
+    }
+
+    const data = await res.json()
+    serviceStatus.value = Array.isArray(data) && data.length > 0 ? 'live' : 'inactive'
+  } catch {
+    serviceStatus.value = 'inactive'
+  }
+}
+
+onMounted(() => {
+  checkServiceStatus()
+  serviceStatusInterval = setInterval(checkServiceStatus, 30000)
+})
+
+onUnmounted(() => {
+  clearInterval(serviceStatusInterval)
+})
 
 async function handleSubmit() {
   if (!passwordInput.value.trim()) {

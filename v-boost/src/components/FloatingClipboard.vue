@@ -11,7 +11,7 @@
       <div
         class="flex items-center justify-between border-b border-white/45 px-3 py-2 cursor-grab active:cursor-grabbing select-none touch-none"
         @mousedown="startDrag"
-        @touchstart.prevent="startDrag"
+        @touchstart.prevent="startTouchDrag"
       >
         <button
           class="text-xs font-semibold uppercase tracking-[0.16em] text-[#2f4569]"
@@ -129,13 +129,25 @@ function setStatus(message) {
   }, 3000)
 }
 
-function startDrag(e) {
-  const point = 'touches' in e ? e.touches[0] : e
-  if (!point) return
-
+function startDragFromPoint(clientX, clientY) {
   dragState.active = true
-  dragState.offsetX = point.clientX - position.value.x
-  dragState.offsetY = point.clientY - position.value.y
+  dragState.offsetX = clientX - position.value.x
+  dragState.offsetY = clientY - position.value.y
+}
+
+function startDrag(e) {
+  startDragFromPoint(e.clientX, e.clientY)
+}
+
+function startTouchDrag(e) {
+  if (e.touches.length !== 1) return
+
+  const point = e.touches[0]
+  startDragFromPoint(point.clientX, point.clientY)
+
+  window.addEventListener('touchmove', onTouchMove, { passive: false })
+  window.addEventListener('touchend', onDragEnd)
+  window.addEventListener('touchcancel', onDragEnd)
 }
 
 function updateDragPosition(clientX, clientY) {
@@ -160,6 +172,9 @@ function onTouchMove(e) {
 
 function onDragEnd() {
   dragState.active = false
+  window.removeEventListener('touchmove', onTouchMove)
+  window.removeEventListener('touchend', onDragEnd)
+  window.removeEventListener('touchcancel', onDragEnd)
 }
 
 function closeWidget() {
@@ -243,9 +258,6 @@ onMounted(() => {
   position.value = clampPosition(position.value.x, position.value.y)
   window.addEventListener('mousemove', onMouseMove)
   window.addEventListener('mouseup', onDragEnd)
-  window.addEventListener('touchmove', onTouchMove, { passive: false })
-  window.addEventListener('touchend', onDragEnd)
-  window.addEventListener('touchcancel', onDragEnd)
   window.addEventListener('resize', onResize)
 })
 

@@ -4,11 +4,19 @@
       <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div class="order-1">
           <p class="text-[11px] uppercase tracking-[0.2em] text-[#667997] font-semibold">Control Center</p>
-          <h1 class="text-lg sm:text-xl font-semibold text-[#1a2740]">v-boost Dashboard</h1>
+          <div class="mt-1 flex items-center justify-between gap-3 sm:block">
+            <h1 class="text-lg sm:text-xl font-semibold text-[#1a2740]">v-boost Dashboard</h1>
+            <button
+              class="inline-flex sm:hidden items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-[#374b69] border border-[#d3deee] bg-white hover:bg-[#eef3fb] transition-colors"
+              @click="logout"
+            >
+              <LogOut :size="16" class="shrink-0" aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         <button
-          class="order-2 sm:order-3 self-end sm:self-auto sm:ml-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-[#374b69] border border-[#d3deee] bg-white hover:bg-[#eef3fb] transition-colors"
+          class="order-2 sm:order-3 self-end sm:self-auto sm:ml-2 hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-[#374b69] border border-[#d3deee] bg-white hover:bg-[#eef3fb] transition-colors"
           @click="logout"
         >
           <LogOut :size="16" class="shrink-0" aria-hidden="true" />
@@ -40,6 +48,7 @@
     </main>
 
     <AdminPanel v-if="showAdmin" @close="showAdmin = false" />
+    <FloatingClipboard />
   </div>
 </template>
 
@@ -50,6 +59,7 @@ import { LogOut } from '@lucide/vue'
 import BoostingBoard from '../components/BoostingBoard.vue'
 import OrderLogs from '../components/OrderLogs.vue'
 import AdminPanel from '../components/AdminPanel.vue'
+import FloatingClipboard from '../components/FloatingClipboard.vue'
 import { AUTH_FLAG } from '../router'
 
 const router = useRouter()

@@ -12,8 +12,9 @@
           @click="logout"
         >
           <LogOut :size="16" class="shrink-0" aria-hidden="true" />
-          <span>Logout</span>
         </button>
+
+        
 
         <div class="order-3 sm:order-2 sm:ml-auto w-full sm:w-auto flex items-center gap-2 rounded-xl border border-[#d8e2f2] bg-white px-2 py-1.5 shadow-[0_6px_18px_rgba(38,72,132,0.08)]">
           <button

@@ -9,23 +9,43 @@
       class="pointer-events-auto overflow-hidden rounded-2xl border border-white/45 bg-white/35 shadow-[0_12px_40px_rgba(17,48,92,0.22)] backdrop-blur-xl"
     >
       <div
-        class="flex items-center justify-between border-b border-white/45 px-3 py-2 cursor-grab active:cursor-grabbing select-none touch-none"
+        class="flex items-center justify-between border-b border-white/45 px-3 py-2 select-none touch-none transition-colors"
+        :class="[
+          isDragging
+            ? 'cursor-grabbing bg-white/55'
+            : isDragAvailable
+              ? 'cursor-grab bg-white/45'
+              : 'cursor-default',
+        ]"
         @mousedown="startDrag"
         @touchstart.prevent="startTouchDrag"
+        @mousemove="detectDragAvailability"
+        @mouseleave="resetDragAvailability"
       >
-        <button
-          class="text-xs font-semibold uppercase tracking-[0.16em] text-[#2f4569]"
-          type="button"
-          @mousedown.stop
-          @touchstart.stop
-          @click="isOpen = !isOpen"
-        >
-          Floating Clipboard
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            class="text-xs font-semibold uppercase tracking-[0.16em] text-[#2f4569]"
+            type="button"
+            data-no-drag
+            @mousedown.stop
+            @touchstart.stop
+            @click="isOpen = !isOpen"
+          >
+            Floating Clipboard
+          </button>
+          <span
+            class="text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors"
+            :class="isDragging || isDragAvailable ? 'text-emerald-700' : 'text-[#7a8fad]'"
+            aria-live="polite"
+          >
+            {{ isDragging ? 'Dragging' : isDragAvailable ? 'Draggable' : 'Drag' }}
+          </span>
+        </div>
         <div class="flex items-center gap-1">
           <button
             class="rounded-lg border border-white/55 bg-white/45 px-2 py-1 text-xs font-medium text-[#2f4569] hover:bg-white/70"
             type="button"
+            data-no-drag
             @mousedown.stop
             @touchstart.stop
             @click="clearText"
@@ -36,6 +56,7 @@
             class="rounded-lg border border-white/55 bg-white/45 px-2 py-1 text-xs font-medium text-[#2f4569] hover:bg-white/70"
             type="button"
             aria-label="Close floating clipboard"
+            data-no-drag
             @mousedown.stop
             @touchstart.stop
             @click="closeWidget"
@@ -79,7 +100,7 @@
     type="button"
     aria-label="Open floating clipboard"
     title="Open floating clipboard"
-    @click="isVisible = true"
+    @click="openWidget"
   >
     <ClipboardList :size="18" class="shrink-0" aria-hidden="true" />
   </button>
@@ -91,12 +112,17 @@ import { ClipboardList } from '@lucide/vue'
 
 const STORAGE_KEY_TEXT = 'vboost_floating_clipboard_text'
 const STORAGE_KEY_POSITION = 'vboost_floating_clipboard_position'
+const STORAGE_KEY_OPEN = 'vboost_floating_clipboard_open'
+const STORAGE_KEY_VISIBLE = 'vboost_floating_clipboard_visible'
+const NON_DRAGGABLE_SELECTOR = 'button, input, textarea, select, a, [data-no-drag]'
 
 const text = ref('')
 const copied = ref(false)
 const isOpen = ref(true)
 const status = ref('')
 const isVisible = ref(true)
+const isDragAvailable = ref(false)
+const isDragging = ref(false)
 const panelRef = ref(null)
 const position = ref({ x: 16, y: 120 })
 
@@ -131,16 +157,36 @@ function setStatus(message) {
 
 function startDragFromPoint(clientX, clientY) {
   dragState.active = true
+  isDragging.value = true
+  isDragAvailable.value = true
   dragState.offsetX = clientX - position.value.x
   dragState.offsetY = clientY - position.value.y
 }
 
+function canStartDragFromTarget(target) {
+  return target instanceof Element && !target.closest(NON_DRAGGABLE_SELECTOR)
+}
+
+function detectDragAvailability(e) {
+  isDragAvailable.value = canStartDragFromTarget(e.target)
+}
+
+function resetDragAvailability() {
+  isDragAvailable.value = false
+}
+
 function startDrag(e) {
+  if (!canStartDragFromTarget(e.target)) {
+    resetDragAvailability()
+    return
+  }
+
   startDragFromPoint(e.clientX, e.clientY)
 }
 
 function startTouchDrag(e) {
   if (e.touches.length !== 1) return
+  if (!canStartDragFromTarget(e.target)) return
 
   const point = e.touches[0]
   startDragFromPoint(point.clientX, point.clientY)
@@ -172,6 +218,8 @@ function onTouchMove(e) {
 
 function onDragEnd() {
   dragState.active = false
+  isDragging.value = false
+  isDragAvailable.value = false
   window.removeEventListener('touchmove', onTouchMove)
   window.removeEventListener('touchend', onDragEnd)
   window.removeEventListener('touchcancel', onDragEnd)
@@ -179,6 +227,10 @@ function onDragEnd() {
 
 function closeWidget() {
   isVisible.value = false
+}
+
+function openWidget() {
+  isVisible.value = true
 }
 
 async function copyText() {
@@ -228,6 +280,16 @@ function loadStoredState() {
     text.value = savedText
   }
 
+  const savedOpen = localStorage.getItem(STORAGE_KEY_OPEN)
+  if (savedOpen === 'true' || savedOpen === 'false') {
+    isOpen.value = savedOpen === 'true'
+  }
+
+  const savedVisible = localStorage.getItem(STORAGE_KEY_VISIBLE)
+  if (savedVisible === 'true' || savedVisible === 'false') {
+    isVisible.value = savedVisible === 'true'
+  }
+
   const savedPosition = localStorage.getItem(STORAGE_KEY_POSITION)
   if (savedPosition) {
     try {
@@ -247,6 +309,14 @@ function onResize() {
 
 watch(text, (value) => {
   localStorage.setItem(STORAGE_KEY_TEXT, value)
+})
+
+watch(isOpen, (value) => {
+  localStorage.setItem(STORAGE_KEY_OPEN, String(value))
+})
+
+watch(isVisible, (value) => {
+  localStorage.setItem(STORAGE_KEY_VISIBLE, String(value))
 })
 
 watch(position, (value) => {

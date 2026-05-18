@@ -7,7 +7,7 @@
     <div
       ref="panelRef"
       class="pointer-events-auto overflow-hidden rounded-2xl border bg-white/35 shadow-[0_12px_40px_rgba(17,48,92,0.22)] backdrop-blur-xl transition-colors"
-      :class="isDragging ? 'border-white/80' : 'border-white/45'"
+      :class="isDragging ? 'border-[#1f3f6d]/80' : 'border-white/45'"
     >
       <div
         class="flex items-center justify-between border-b border-white/45 px-3 py-2 select-none touch-none"

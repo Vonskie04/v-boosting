@@ -6,41 +6,25 @@
   >
     <div
       ref="panelRef"
-      class="pointer-events-auto overflow-hidden rounded-2xl border border-white/45 bg-white/35 shadow-[0_12px_40px_rgba(17,48,92,0.22)] backdrop-blur-xl"
+      class="pointer-events-auto overflow-hidden rounded-2xl border bg-white/35 shadow-[0_12px_40px_rgba(17,48,92,0.22)] backdrop-blur-xl transition-colors"
+      :class="isDragging ? 'border-white/80' : 'border-white/45'"
     >
       <div
-        class="flex items-center justify-between border-b border-white/45 px-3 py-2 select-none touch-none transition-colors"
-        :class="[
-          isDragging
-            ? 'cursor-grabbing bg-white/55'
-            : isDragAvailable
-              ? 'cursor-grab bg-white/45'
-              : 'cursor-default',
-        ]"
+        class="flex items-center justify-between border-b border-white/45 px-3 py-2 select-none touch-none"
+        :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
         @mousedown="startDrag"
         @touchstart.prevent="startTouchDrag"
-        @mousemove="detectDragAvailability"
-        @mouseleave="resetDragAvailability"
       >
-        <div class="flex items-center gap-2">
-          <button
-            class="text-xs font-semibold uppercase tracking-[0.16em] text-[#2f4569]"
-            type="button"
-            data-no-drag
-            @mousedown.stop
-            @touchstart.stop
-            @click="isOpen = !isOpen"
-          >
-            Floating Clipboard
-          </button>
-          <span
-            class="text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors"
-            :class="isDragging || isDragAvailable ? 'text-emerald-700' : 'text-[#7a8fad]'"
-            aria-live="polite"
-          >
-            {{ isDragging ? 'Dragging' : isDragAvailable ? 'Draggable' : 'Drag' }}
-          </span>
-        </div>
+        <button
+          class="text-xs font-semibold uppercase tracking-[0.16em] text-[#2f4569]"
+          type="button"
+          data-no-drag
+          @mousedown.stop
+          @touchstart.stop
+          @click="isOpen = !isOpen"
+        >
+          Floating Clipboard
+        </button>
         <div class="flex items-center gap-1">
           <button
             class="rounded-lg border border-white/55 bg-white/45 px-2 py-1 text-xs font-medium text-[#2f4569] hover:bg-white/70"
@@ -121,7 +105,6 @@ const copied = ref(false)
 const isOpen = ref(true)
 const status = ref('')
 const isVisible = ref(true)
-const isDragAvailable = ref(false)
 const isDragging = ref(false)
 const panelRef = ref(null)
 const position = ref({ x: 16, y: 120 })
@@ -158,7 +141,6 @@ function setStatus(message) {
 function startDragFromPoint(clientX, clientY) {
   dragState.active = true
   isDragging.value = true
-  isDragAvailable.value = true
   dragState.offsetX = clientX - position.value.x
   dragState.offsetY = clientY - position.value.y
 }
@@ -167,17 +149,8 @@ function canStartDragFromTarget(target) {
   return target instanceof Element && !target.closest(NON_DRAGGABLE_SELECTOR)
 }
 
-function detectDragAvailability(e) {
-  isDragAvailable.value = canStartDragFromTarget(e.target)
-}
-
-function resetDragAvailability() {
-  isDragAvailable.value = false
-}
-
 function startDrag(e) {
   if (!canStartDragFromTarget(e.target)) {
-    resetDragAvailability()
     return
   }
 
@@ -219,7 +192,6 @@ function onTouchMove(e) {
 function onDragEnd() {
   dragState.active = false
   isDragging.value = false
-  isDragAvailable.value = false
   window.removeEventListener('touchmove', onTouchMove)
   window.removeEventListener('touchend', onDragEnd)
   window.removeEventListener('touchcancel', onDragEnd)

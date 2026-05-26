@@ -34,7 +34,32 @@
             <div v-else-if="balanceError" class="text-sm text-rose-600">{{ balanceError }}</div>
             <div v-else-if="balance !== null" class="flex flex-col gap-1">
               <p class="text-xs text-[#6a7f9f] uppercase tracking-wide font-semibold">Account Balance</p>
-              <p class="text-2xl font-bold text-[#153663]">$ {{ balance }}</p>
+              <div class="inline-flex w-fit rounded-lg border border-[#d8e2f2] bg-[#f7faff] p-0.5 gap-0.5">
+                <button
+                  type="button"
+                  @click="balanceCurrency = 'EUR'"
+                  class="px-2 py-1 text-[11px] font-semibold rounded-md transition-colors"
+                  :class="balanceCurrency === 'EUR' ? 'bg-white text-[#1f3150] shadow-sm' : 'text-[#6a7f9f] hover:text-[#1f3150]'"
+                >
+                  EUR
+                </button>
+                <button
+                  type="button"
+                  @click="balanceCurrency = 'USD'"
+                  :disabled="!hasUsdRate"
+                  class="px-2 py-1 text-[11px] font-semibold rounded-md transition-colors disabled:opacity-40"
+                  :class="balanceCurrency === 'USD' ? 'bg-white text-[#1f3150] shadow-sm' : 'text-[#6a7f9f] hover:text-[#1f3150]'"
+                >
+                  USD
+                </button>
+              </div>
+              <p class="text-2xl font-bold text-[#153663]">{{ formattedBalance }}</p>
+              <p v-if="balanceCurrency === 'USD' && hasUsdRate" class="text-[11px] text-[#6a7f9f]">
+                1 EUR = {{ usdRate.toFixed(4) }} USD
+              </p>
+              <p v-else-if="balanceCurrency === 'USD'" class="text-[11px] text-[#6a7f9f]">
+                USD conversion is currently unavailable.
+              </p>
             </div>
             <button
               type="button"
@@ -239,7 +264,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const FREE_TIKTOK_VIEWS_URL = 'https://zefame.com/free-tiktok-views'
 const FREE_TIKTOK_VIEWS_EMBED_URL = '/api/free-tiktok-views/embed'
@@ -249,6 +274,32 @@ const balanceOpen = ref(false)
 const balanceLoading = ref(false)
 const balanceError = ref('')
 const balance = ref(null)
+const balanceCurrency = ref('EUR')
+const usdRate = ref(null)
+
+const hasUsdRate = computed(() => Number.isFinite(usdRate.value) && usdRate.value > 0)
+
+const formattedBalance = computed(() => {
+  if (balance.value === null) return ''
+
+  if (balanceCurrency.value === 'USD') {
+    if (!hasUsdRate.value) {
+      return 'N/A'
+    }
+    return formatCurrency(balance.value * usdRate.value, 'USD')
+  }
+
+  return formatCurrency(balance.value, 'EUR')
+})
+
+function formatCurrency(amount, currency) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(amount)
+}
 
 async function fetchBalance() {
   balanceLoading.value = true
@@ -273,15 +324,21 @@ async function fetchBalance() {
       throw new Error('Invalid balance response')
     }
 
-    let rate = 1
+    let rate = null
     if (fxResult.status === 'fulfilled' && fxResult.value.ok) {
       const fxData = await fxResult.value.json()
-      const usdRate = Number(fxData?.rates?.USD)
-      if (Number.isFinite(usdRate) && usdRate > 0) {
-        rate = usdRate
+      const nextRate = Number(fxData?.rates?.USD)
+      if (Number.isFinite(nextRate) && nextRate > 0) {
+        rate = nextRate
       }
     }
-    balance.value = (eurAmount * rate).toFixed(4)
+
+    balance.value = eurAmount
+    usdRate.value = rate
+
+    if (balanceCurrency.value === 'USD' && !hasUsdRate.value) {
+      balanceCurrency.value = 'EUR'
+    }
   } catch (err) {
     balanceError.value = err.message || 'Failed to load balance.'
   } finally {

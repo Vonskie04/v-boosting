@@ -73,6 +73,23 @@ const activeTab = ref('boost')
 const showAdmin = ref(false)
 
 let heartbeatInterval
+let hasSentLogout = false
+
+async function notifyServerLogout({ keepalive = false } = {}) {
+  const token = sessionStorage.getItem(AUTH_FLAG)
+  if (!token || hasSentLogout) return
+
+  hasSentLogout = true
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      keepalive,
+    })
+  } catch {
+    // Best effort only. Session timeout cleanup handles failed unload requests.
+  }
+}
 
 async function sendHeartbeat() {
   const token = sessionStorage.getItem(AUTH_FLAG)
@@ -96,24 +113,27 @@ function handleKeydown(e) {
   }
 }
 
+function handleAppExit() {
+  void notifyServerLogout({ keepalive: true })
+}
+
 onMounted(() => {
+  void sendHeartbeat()
   heartbeatInterval = setInterval(sendHeartbeat, 5000)
   window.addEventListener('keydown', handleKeydown)
+  window.addEventListener('pagehide', handleAppExit)
+  window.addEventListener('beforeunload', handleAppExit)
 })
 
 onUnmounted(() => {
   clearInterval(heartbeatInterval)
   window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('pagehide', handleAppExit)
+  window.removeEventListener('beforeunload', handleAppExit)
 })
 
 async function logout() {
-  const token = sessionStorage.getItem(AUTH_FLAG)
-  if (token) {
-    await fetch('/api/auth/logout', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    }).catch(() => {})
-  }
+  await notifyServerLogout()
   sessionStorage.removeItem(AUTH_FLAG)
   router.push({ name: 'login' })
 }

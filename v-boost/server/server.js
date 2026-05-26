@@ -19,6 +19,10 @@ const ZEFAME_API = 'https://zefame.com/api/v2'
 const FREE_TIKTOK_VIEWS_URL = 'https://zefame.com/free-tiktok-views'
 const APP_PASSWORD = process.env.APP_PASSWORD
 let maxDevices = parseInt(process.env.MAX_DEVICES || '10', 10)
+const sessionTimeoutSecondsRaw = parseInt(process.env.SESSION_TIMEOUT_SECONDS || '30', 10)
+const sessionTimeoutSeconds = Number.isInteger(sessionTimeoutSecondsRaw) && sessionTimeoutSecondsRaw > 0
+  ? sessionTimeoutSecondsRaw
+  : 30
 
 const connectionString = process.env.DATABASE_URL
 const dbSslEnabled = (process.env.DATABASE_SSL ?? 'true').toLowerCase() === 'true'
@@ -37,6 +41,17 @@ const db = new Pool({
   connectionString,
   ssl: dbSslEnabled ? { rejectUnauthorized: false } : false,
 })
+
+async function cleanupExpiredSessions() {
+  const { rowCount } = await db.query(
+    `UPDATE sessions
+     SET is_active = FALSE
+     WHERE is_active = TRUE
+       AND last_seen < NOW() - ($1::int * INTERVAL '1 second')`,
+    [sessionTimeoutSeconds]
+  )
+  return rowCount ?? 0
+}
 
 async function initDb() {
   await db.query(`
@@ -86,6 +101,8 @@ app.post('/api/auth/login', async (req, res) => {
   if (!password) return res.status(400).json({ error: 'Password required' })
   if (password !== APP_PASSWORD) return res.status(401).json({ error: 'Incorrect password' })
 
+  await cleanupExpiredSessions()
+
   const { rows: active } = await db.query(
     'SELECT COUNT(*) FROM sessions WHERE is_active = TRUE'
   )
@@ -118,6 +135,9 @@ app.post('/api/auth/logout', async (req, res) => {
 app.post('/api/auth/heartbeat', async (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '')
   if (!token) return res.status(401).json({ error: 'No token' })
+
+  await cleanupExpiredSessions()
+
   const { rows } = await db.query(
     'UPDATE sessions SET last_seen = NOW() WHERE id = $1 AND is_active = TRUE RETURNING id',
     [token]
@@ -131,6 +151,9 @@ app.post('/api/auth/heartbeat', async (req, res) => {
 async function requireSession(req, res) {
   const token = req.headers.authorization?.replace('Bearer ', '')
   if (!token) { res.status(401).json({ error: 'Unauthorized' }); return null }
+
+  await cleanupExpiredSessions()
+
   const { rows } = await db.query(
     'SELECT id FROM sessions WHERE id = $1 AND is_active = TRUE',
     [token]
@@ -397,6 +420,22 @@ initDb()
   .then(() => {
     const server = app.listen(PORT, () => {
       console.log(`v-boost server listening on port ${PORT}`)
+      console.log(`Session timeout is ${sessionTimeoutSeconds}s`)
+
+      const cleanupMs = Math.max(5000, Math.floor((sessionTimeoutSeconds * 1000) / 2))
+      const cleanupInterval = setInterval(() => {
+        cleanupExpiredSessions().catch(err => {
+          console.error('Session cleanup error:', err.message)
+        })
+      }, cleanupMs)
+
+      if (typeof cleanupInterval.unref === 'function') {
+        cleanupInterval.unref()
+      }
+
+      server.on('close', () => {
+        clearInterval(cleanupInterval)
+      })
     })
     server.on('error', err => {
       if (err.code === 'EADDRINUSE') {

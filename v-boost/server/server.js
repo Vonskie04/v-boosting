@@ -16,7 +16,6 @@ const app = express()
 const PORT = process.env.PORT || 3001
 const API_KEY = process.env.ZEFAME_API_KEY
 const ZEFAME_API = 'https://zefame.com/api/v2'
-const FREE_TIKTOK_VIEWS_URL = 'https://zefame.com/free-tiktok-views'
 const APP_PASSWORD = process.env.APP_PASSWORD
 let maxDevices = parseInt(process.env.MAX_DEVICES || '10', 10)
 const sessionTimeoutSecondsRaw = parseInt(process.env.SESSION_TIMEOUT_SECONDS || '30', 10)
@@ -202,11 +201,10 @@ app.put('/api/admin/limit', async (req, res) => {
 // GET /api/services – fetch available boosting services
 // Query params:
 //   ?filter=tiktok  – only TikTok services (default)
-//   ?filter=free    – only services with rate = 0
 //   ?filter=all     – all services unfiltered
 app.get('/api/services', async (req, res) => {
   const filter = (req.query.filter ?? 'tiktok').toLowerCase()
-  const allowed = ['tiktok', 'free', 'all']
+  const allowed = ['tiktok', 'all']
   if (!allowed.includes(filter)) {
     return res.status(400).json({ error: `Invalid filter. Use one of: ${allowed.join(', ')}` })
   }
@@ -226,62 +224,12 @@ app.get('/api/services', async (req, res) => {
       data = data.filter(s =>
         /tiktok/i.test(s.name) || /tiktok/i.test(s.category ?? '')
       )
-    } else if (filter === 'free') {
-      data = data.filter(s => {
-        const freeByRate = parseFloat(s.rate) === 0
-        const freeByText = /free/i.test(`${s.name ?? ''} ${s.category ?? ''}`)
-        return freeByRate || freeByText
-      })
-    }
-
-    if (filter === 'free' || filter === 'all') {
-      const hasFreeTikTokUrl = data.some(s =>
-        s.externalUrl === FREE_TIKTOK_VIEWS_URL || String(s.name ?? '').includes(FREE_TIKTOK_VIEWS_URL)
-      )
-
-      if (!hasFreeTikTokUrl) {
-        data.push({
-          service: '__free_tiktok_views_page__',
-          name: 'Free TikTok Views Page',
-          category: 'Free',
-          rate: '0',
-          externalUrl: FREE_TIKTOK_VIEWS_URL,
-        })
-      }
     }
 
     res.json(data)
   } catch (err) {
     console.error('Services fetch error:', err.message)
     res.status(500).json({ error: 'Failed to fetch services' })
-  }
-})
-
-// GET /api/free-tiktok-views/embed – proxy embed page so it can load in same-origin iframe
-app.get('/api/free-tiktok-views/embed', async (_req, res) => {
-  try {
-    const response = await fetch(FREE_TIKTOK_VIEWS_URL, {
-      headers: {
-        // Some upstreams serve different markup without a browser-like user agent.
-        'User-Agent': 'Mozilla/5.0 (compatible; v-boost-embed/1.0)'
-      }
-    })
-
-    if (!response.ok) {
-      return res.status(502).send('Failed to load free TikTok views page')
-    }
-
-    const rawHtml = await response.text()
-    const htmlWithBase = /<base\s/i.test(rawHtml)
-      ? rawHtml
-      : rawHtml.replace(/<head(\s[^>]*)?>/i, match => `${match}\n<base href="https://zefame.com/">`)
-
-    res.setHeader('Content-Type', 'text/html; charset=utf-8')
-    res.setHeader('Cache-Control', 'public, max-age=300')
-    res.send(htmlWithBase)
-  } catch (err) {
-    console.error('Free TikTok views embed error:', err.message)
-    res.status(500).send('Failed to embed free TikTok views page')
   }
 })
 
@@ -303,9 +251,19 @@ app.post('/api/boost', async (req, res) => {
     return res.status(400).json({ error: 'Invalid service ID' })
   }
 
-  // Basic TikTok URL validation
-  const tiktokPattern = /^https?:\/\/(www\.)?tiktok\.com\/.+/i
-  if (!tiktokPattern.test(url)) {
+  let parsedUrl
+  try {
+    parsedUrl = new URL(String(url).trim())
+  } catch {
+    return res.status(400).json({ error: 'Invalid TikTok URL' })
+  }
+
+  const host = parsedUrl.hostname.toLowerCase()
+  const isTikTokHost = host === 'tiktok.com' || host.endsWith('.tiktok.com')
+  const hasPath = parsedUrl.pathname && parsedUrl.pathname !== '/'
+
+  // Accept TikTok mobile/share links like vm.tiktok.com and m.tiktok.com.
+  if (!isTikTokHost || !hasPath) {
     return res.status(400).json({ error: 'Invalid TikTok URL' })
   }
 

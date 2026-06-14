@@ -33,7 +33,7 @@
             :class="log.status === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'">
             {{ log.status }}
           </span>
-          <span class="shrink-0 font-mono text-[#58708f]">{{ new Date(log.time).toLocaleTimeString() }}</span>
+          <span class="shrink-0 font-mono text-[#58708f]">{{ formatLogDate(log.time) }}</span>
           <span class="truncate flex-1 text-[#244064]" :title="log.url">{{ log.url }}</span>
           <span class="shrink-0 font-semibold text-[#1d3557]">x{{ log.quantity }}</span>
           <span v-if="log.orderId" class="shrink-0 font-mono text-[#145ec7]">#{{ log.orderId }}</span>
@@ -49,6 +49,18 @@ import { ref, onMounted } from 'vue'
 
 const auditLogs = ref([])
 const auditLogsLoading = ref(false)
+
+function formatLogDate(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Invalid date'
+  return date.toLocaleString([], {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 async function fetchAuditLogs() {
   auditLogsLoading.value = true

@@ -45,7 +45,7 @@
                   <div class="inline-flex w-fit gap-0.5 rounded-lg border border-[#d8e2f2] bg-[#f7faff] p-0.5">
                     <button
                       type="button"
-                      @click="balanceCurrency = 'EUR'"
+                      @click="setBalanceCurrency('EUR')"
                       class="rounded-md px-2 py-1 text-[11px] font-semibold transition-colors"
                       :class="balanceCurrency === 'EUR' ? 'bg-white text-[#1f3150] shadow-sm' : 'text-[#6a7f9f] hover:text-[#1f3150]'"
                     >
@@ -53,9 +53,8 @@
                     </button>
                     <button
                       type="button"
-                      @click="balanceCurrency = 'USD'"
-                      :disabled="!hasUsdRate"
-                      class="rounded-md px-2 py-1 text-[11px] font-semibold transition-colors disabled:opacity-40"
+                      @click="setBalanceCurrency('USD')"
+                      class="rounded-md px-2 py-1 text-[11px] font-semibold transition-colors"
                       :class="balanceCurrency === 'USD' ? 'bg-white text-[#1f3150] shadow-sm' : 'text-[#6a7f9f] hover:text-[#1f3150]'"
                     >
                       USD
@@ -188,9 +187,9 @@
 
           <div class="mt-6 grid gap-4 md:grid-cols-2">
             <div class="space-y-2 text-left md:col-span-2">
-              <label for="tiktok-url" class="text-sm font-semibold text-[#23344f]">TikTok URL</label>
+              <label for="social-url" class="text-sm font-semibold text-[#23344f]">{{ urlFieldLabel }}</label>
               <input
-                id="tiktok-url"
+                id="social-url"
                 v-model="url"
                 type="text"
                 inputmode="url"
@@ -198,11 +197,11 @@
                 autocomplete="off"
                 autocorrect="off"
                 spellcheck="false"
-                placeholder="https://www.tiktok.com/@user/video/... or vm.tiktok.com/..."
+                :placeholder="urlPlaceholder"
                 class="w-full rounded-xl border border-[#cfdceb] bg-white px-4 py-3 focus:border-[#3b78da] focus:outline-none focus:ring-4 focus:ring-[#3b78da]/15"
                 :disabled="loading"
               />
-              <p class="text-xs text-[#5d7391]">Mobile share links are accepted.</p>
+              <p class="text-xs text-[#5d7391]">Paste a full {{ platformName }} link. Mobile share links are accepted where supported.</p>
             </div>
 
             <div class="space-y-2 text-left">
@@ -248,6 +247,7 @@
                   Apply
                 </button>
               </div>
+              <p class="text-xs text-[#5d7391]">Estimated price: <span class="font-semibold text-[#1d3557]">{{ estimatedPriceLabel }}</span></p>
             </div>
 
             <div class="flex items-end">
@@ -359,6 +359,46 @@ const selectedServiceRateLabel = computed(() => {
   return `${raw.toFixed(2)} ${balanceCurrency.value}`
 })
 
+const platformName = computed(() => {
+  const text = `${selectedServiceData.value?.name ?? ''} ${selectedServiceData.value?.category ?? ''}`.toLowerCase()
+  if (text.includes('instagram')) return 'Instagram'
+  if (text.includes('youtube')) return 'YouTube'
+  if (text.includes('facebook')) return 'Facebook'
+  if (text.includes('twitter') || text.includes(' x ')) return 'X/Twitter'
+  if (text.includes('telegram')) return 'Telegram'
+  if (text.includes('spotify')) return 'Spotify'
+  return 'TikTok'
+})
+
+const urlFieldLabel = computed(() => `${platformName.value} URL`)
+
+const urlPlaceholder = computed(() => {
+  const placeholders = {
+    TikTok: 'https://www.tiktok.com/@user/video/... or vm.tiktok.com/...',
+    Instagram: 'https://www.instagram.com/p/...',
+    YouTube: 'https://www.youtube.com/watch?v=... or https://youtu.be/...',
+    Facebook: 'https://www.facebook.com/...',
+    'X/Twitter': 'https://x.com/... or https://twitter.com/...',
+    Telegram: 'https://t.me/...',
+    Spotify: 'https://open.spotify.com/...',
+  }
+  return placeholders[platformName.value] || 'https://example.com/...'
+})
+
+const estimatedPriceLabel = computed(() => {
+  const rate = Number.parseFloat(selectedServiceData.value?.rate)
+  const qty = Number(quantity.value)
+  if (!Number.isFinite(rate) || !Number.isFinite(qty) || qty <= 0) return '-'
+
+  const eurEstimate = (rate * qty) / 1000
+  if (balanceCurrency.value === 'USD') {
+    if (!hasUsdRate.value) return 'N/A (USD rate unavailable)'
+    return formatCurrency(eurEstimate * usdRate.value, 'USD')
+  }
+
+  return formatCurrency(eurEstimate, 'EUR')
+})
+
 function formatCurrency(amount, currency) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -402,15 +442,15 @@ async function fetchBalance() {
 
     balance.value = eurAmount
     usdRate.value = rate
-
-    if (balanceCurrency.value === 'USD' && !hasUsdRate.value) {
-      balanceCurrency.value = 'EUR'
-    }
   } catch (err) {
     balanceError.value = err.message || 'Failed to load balance.'
   } finally {
     balanceLoading.value = false
   }
+}
+
+function setBalanceCurrency(currency) {
+  balanceCurrency.value = currency
 }
 
 function toggleBalance() {

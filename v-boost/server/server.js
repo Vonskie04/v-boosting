@@ -255,16 +255,14 @@ app.post('/api/boost', async (req, res) => {
   try {
     parsedUrl = new URL(String(url).trim())
   } catch {
-    return res.status(400).json({ error: 'Invalid TikTok URL' })
+    return res.status(400).json({ error: 'Invalid URL' })
   }
 
   const host = parsedUrl.hostname.toLowerCase()
-  const isTikTokHost = host === 'tiktok.com' || host.endsWith('.tiktok.com')
   const hasPath = parsedUrl.pathname && parsedUrl.pathname !== '/'
 
-  // Accept TikTok mobile/share links like vm.tiktok.com and m.tiktok.com.
-  if (!isTikTokHost || !hasPath) {
-    return res.status(400).json({ error: 'Invalid TikTok URL' })
+  if (!host || !hasPath) {
+    return res.status(400).json({ error: 'Invalid URL' })
   }
 
   try {

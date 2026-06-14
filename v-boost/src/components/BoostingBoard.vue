@@ -61,7 +61,7 @@
                     </button>
                   </div>
                   <p class="text-2xl font-bold text-[#153663]">{{ formattedBalance }}</p>
-                  <p v-if="balanceCurrency === 'USD' && hasUsdRate" class="text-[11px] text-[#6a7f9f]">1 EUR = {{ usdRate.toFixed(4) }} USD</p>
+                  <p v-if="balanceCurrency === 'USD' && hasUsdRate" class="text-[11px] text-[#6a7f9f]">1 EUR = {{ usdRate.toFixed(4) }} USD <span v-if="usdRateStatusLabel">({{ usdRateStatusLabel }})</span></p>
                   <p v-else-if="balanceCurrency === 'USD'" class="text-[11px] text-[#6a7f9f]">USD conversion is currently unavailable.</p>
                 </div>
                 <button
@@ -286,7 +286,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 
 const categories = [
   { label: 'All Services', value: 'all' },
@@ -300,6 +300,7 @@ const balanceError = ref('')
 const balance = ref(null)
 const balanceCurrency = ref('EUR')
 const usdRate = ref(null)
+const usdRateUpdatedAt = ref(null)
 
 const hasUsdRate = computed(() => Number.isFinite(usdRate.value) && usdRate.value > 0)
 
@@ -399,6 +400,11 @@ const estimatedPriceLabel = computed(() => {
   return formatCurrency(eurEstimate, 'EUR')
 })
 
+const usdRateStatusLabel = computed(() => {
+  if (!hasUsdRate.value || !usdRateUpdatedAt.value) return ''
+  return `Updated ${new Date(usdRateUpdatedAt.value).toLocaleTimeString()}`
+})
+
 function formatCurrency(amount, currency) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -412,16 +418,7 @@ async function fetchBalance() {
   balanceLoading.value = true
   balanceError.value = ''
   try {
-    const [balResult, fxResult] = await Promise.allSettled([
-      fetch('/api/balance'),
-      fetch('https://api.frankfurter.app/latest?from=EUR&to=USD'),
-    ])
-
-    if (balResult.status !== 'fulfilled') {
-      throw new Error('Could not reach balance API')
-    }
-
-    const balRes = balResult.value
+    const balRes = await fetch('/api/balance')
     if (!balRes.ok) throw new Error('Bad response from balance API')
     const data = await balRes.json()
     if (data.error) throw new Error(data.error)
@@ -431,17 +428,8 @@ async function fetchBalance() {
       throw new Error('Invalid balance response')
     }
 
-    let rate = null
-    if (fxResult.status === 'fulfilled' && fxResult.value.ok) {
-      const fxData = await fxResult.value.json()
-      const nextRate = Number(fxData?.rates?.USD)
-      if (Number.isFinite(nextRate) && nextRate > 0) {
-        rate = nextRate
-      }
-    }
-
     balance.value = eurAmount
-    usdRate.value = rate
+    await fetchUsdRate(true)
   } catch (err) {
     balanceError.value = err.message || 'Failed to load balance.'
   } finally {
@@ -449,14 +437,73 @@ async function fetchBalance() {
   }
 }
 
+async function fetchUsdRate(showError = false) {
+  const providers = [
+    async () => {
+      const res = await fetch('https://open.er-api.com/v6/latest/EUR')
+      if (!res.ok) throw new Error('FX provider 1 failed')
+      const data = await res.json()
+      return Number(data?.rates?.USD)
+    },
+    async () => {
+      const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD')
+      if (!res.ok) throw new Error('FX provider 2 failed')
+      const data = await res.json()
+      return Number(data?.rates?.USD)
+    },
+  ]
+
+  for (const getRate of providers) {
+    try {
+      const rate = await getRate()
+      if (Number.isFinite(rate) && rate > 0) {
+        usdRate.value = rate
+        usdRateUpdatedAt.value = Date.now()
+        return rate
+      }
+    } catch {
+      // Try next provider.
+    }
+  }
+
+  if (showError) {
+    balanceError.value = 'Live USD conversion is currently unavailable.'
+  }
+  usdRate.value = null
+  usdRateUpdatedAt.value = null
+  return null
+}
+
 function setBalanceCurrency(currency) {
   balanceCurrency.value = currency
 }
 
+let fxRefreshTimer = null
+
+function startUsdRateRefresh() {
+  stopUsdRateRefresh()
+  fxRefreshTimer = setInterval(() => {
+    fetchUsdRate(false)
+  }, 30000)
+}
+
+function stopUsdRateRefresh() {
+  if (!fxRefreshTimer) return
+  clearInterval(fxRefreshTimer)
+  fxRefreshTimer = null
+}
+
 function toggleBalance() {
   balanceOpen.value = !balanceOpen.value
-  if (balanceOpen.value && balance.value === null && !balanceLoading.value) {
-    fetchBalance()
+  if (balanceOpen.value) {
+    if (balance.value === null && !balanceLoading.value) {
+      fetchBalance()
+    } else {
+      fetchUsdRate(false)
+    }
+    startUsdRateRefresh()
+  } else {
+    stopUsdRateRefresh()
   }
 }
 
@@ -534,6 +581,10 @@ watch(filteredServices, list => {
   if (!stillExists) {
     selectedService.value = list[0].service
   }
+})
+
+onUnmounted(() => {
+  stopUsdRateRefresh()
 })
 
 async function submitBoost() {

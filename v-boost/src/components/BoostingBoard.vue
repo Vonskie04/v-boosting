@@ -20,7 +20,6 @@
                   <path d="M16 12h.01"/>
                   <path d="M2 10h20"/>
                 </svg>
-                Balance
                 <svg :class="balanceOpen ? 'rotate-180' : ''"
                   class="transition-transform duration-200"
                   xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -76,7 +75,7 @@
           </div>
 
           <div>
-            <h2 class="mt-2 text-2xl font-extrabold text-[#1b2e4a] sm:text-4xl">Boosting Board</h2>
+            <h2 class="mt-2 text-xl font-extrabold text-[#1b2e4a] sm:text-3xl">Boosting Board</h2>
             <p class="mt-2 max-w-xl text-sm text-[#526885]">
               Browse every platform, narrow by service type, and place an order with the right link and quantity.
             </p>

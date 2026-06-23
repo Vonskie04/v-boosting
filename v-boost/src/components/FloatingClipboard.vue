@@ -16,12 +16,9 @@
         @touchstart.prevent="startTouchDrag"
       >
         <button
-          class="text-xs font-semibold uppercase tracking-[0.16em] text-[#2f4569]"
+          class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2f4569]"
           type="button"
-          data-no-drag
-          @mousedown.stop
-          @touchstart.stop
-          @click="isOpen = !isOpen"
+          @click="toggleOpen"
         >
           Floating Clipboard
         </button>
@@ -98,7 +95,7 @@ const STORAGE_KEY_TEXT = 'vboost_floating_clipboard_text'
 const STORAGE_KEY_POSITION = 'vboost_floating_clipboard_position'
 const STORAGE_KEY_OPEN = 'vboost_floating_clipboard_open'
 const STORAGE_KEY_VISIBLE = 'vboost_floating_clipboard_visible'
-const NON_DRAGGABLE_SELECTOR = 'button, input, textarea, select, a, [data-no-drag]'
+const NON_DRAGGABLE_SELECTOR = 'input, textarea, select, a, [data-no-drag]'
 
 const text = ref('')
 const copied = ref(false)
@@ -113,6 +110,10 @@ const dragState = {
   active: false,
   offsetX: 0,
   offsetY: 0,
+  startX: 0,
+  startY: 0,
+  moved: false,
+  suppressNextClick: false,
 }
 
 let copiedTimer
@@ -143,6 +144,9 @@ function startDragFromPoint(clientX, clientY) {
   isDragging.value = true
   dragState.offsetX = clientX - position.value.x
   dragState.offsetY = clientY - position.value.y
+  dragState.startX = clientX
+  dragState.startY = clientY
+  dragState.moved = false
 }
 
 function canStartDragFromTarget(target) {
@@ -172,6 +176,10 @@ function startTouchDrag(e) {
 function updateDragPosition(clientX, clientY) {
   if (!dragState.active) return
 
+  if (Math.abs(clientX - dragState.startX) > 3 || Math.abs(clientY - dragState.startY) > 3) {
+    dragState.moved = true
+  }
+
   const next = clampPosition(
     clientX - dragState.offsetX,
     clientY - dragState.offsetY,
@@ -190,11 +198,22 @@ function onTouchMove(e) {
 }
 
 function onDragEnd() {
+  if (dragState.active && dragState.moved) {
+    dragState.suppressNextClick = true
+  }
   dragState.active = false
   isDragging.value = false
   window.removeEventListener('touchmove', onTouchMove)
   window.removeEventListener('touchend', onDragEnd)
   window.removeEventListener('touchcancel', onDragEnd)
+}
+
+function toggleOpen() {
+  if (dragState.suppressNextClick) {
+    dragState.suppressNextClick = false
+    return
+  }
+  isOpen.value = !isOpen.value
 }
 
 function closeWidget() {

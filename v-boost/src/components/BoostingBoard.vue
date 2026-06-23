@@ -5,78 +5,81 @@
       <div class="board-glow board-glow-right"></div>
 
       <div class="relative z-10 flex flex-col gap-4">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div class="flex items-start justify-between gap-3">
+            <p class="header-kicker pt-2 text-[11px] font-bold uppercase tracking-[0.28em] text-[#617999]">order control</p>
+
+            <div class="relative shrink-0">
+              <button
+                type="button"
+                @click="toggleBalance"
+                class="inline-flex items-center justify-center gap-2 rounded-xl border border-[#d8e2f2] bg-white/95 px-3 py-2 text-xs font-semibold text-[#415a80] shadow-sm transition-colors hover:bg-white hover:text-[#1f3150] sm:px-4 sm:text-sm"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="2"/>
+                  <path d="M16 12h.01"/>
+                  <path d="M2 10h20"/>
+                </svg>
+                Balance
+                <svg :class="balanceOpen ? 'rotate-180' : ''"
+                  class="transition-transform duration-200"
+                  xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m6 9 6 6 6-6"/>
+                </svg>
+              </button>
+
+              <transition name="balance-dropdown">
+                <div
+                  v-if="balanceOpen"
+                  class="absolute right-0 top-full z-20 mt-2 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-[#d8e2f2] bg-white p-4 shadow-[0_18px_44px_rgba(27,57,102,0.2)]"
+                >
+                  <div v-if="balanceLoading" class="text-sm text-[#6a7f9f]">Loading...</div>
+                  <div v-else-if="balanceError" class="text-sm text-rose-600">{{ balanceError }}</div>
+                  <div v-else-if="balance !== null" class="flex flex-col gap-1">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-[#6a7f9f]">Account Balance</p>
+                    <div class="inline-flex w-fit gap-0.5 rounded-lg border border-[#d8e2f2] bg-[#f7faff] p-0.5">
+                      <button
+                        type="button"
+                        @click="setBalanceCurrency('EUR')"
+                        class="rounded-md px-2 py-1 text-[11px] font-semibold transition-colors"
+                        :class="balanceCurrency === 'EUR' ? 'bg-white text-[#1f3150] shadow-sm' : 'text-[#6a7f9f] hover:text-[#1f3150]'"
+                      >
+                        EUR
+                      </button>
+                      <button
+                        type="button"
+                        @click="setBalanceCurrency('USD')"
+                        class="rounded-md px-2 py-1 text-[11px] font-semibold transition-colors"
+                        :class="balanceCurrency === 'USD' ? 'bg-white text-[#1f3150] shadow-sm' : 'text-[#6a7f9f] hover:text-[#1f3150]'"
+                      >
+                        USD
+                      </button>
+                    </div>
+                    <p class="text-2xl font-bold text-[#153663]">{{ formattedBalance }}</p>
+                    <p v-if="balanceCurrency === 'USD' && hasUsdRate" class="text-[11px] text-[#6a7f9f]">1 EUR = {{ usdRate.toFixed(4) }} USD <span v-if="usdRateStatusLabel">({{ usdRateStatusLabel }})</span></p>
+                    <p v-else-if="balanceCurrency === 'USD'" class="text-[11px] text-[#6a7f9f]">USD conversion is currently unavailable.</p>
+                  </div>
+                  <button
+                    type="button"
+                    @click="fetchBalance"
+                    :disabled="balanceLoading"
+                    class="mt-3 flex w-full items-center justify-center gap-1 rounded-lg bg-[#f3f7ff] py-1.5 text-xs font-semibold text-[#5a7193] transition-colors hover:text-[#1f3150] disabled:opacity-40"
+                  >
+                    <svg :class="balanceLoading ? 'animate-spin' : ''" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 12a9 9 0 1 1-9-9 9 9 0 0 1 6.36 2.64L21 3v6h-6"/>
+                    </svg>
+                    Refresh
+                  </button>
+                </div>
+              </transition>
+            </div>
+          </div>
+
           <div>
-            <p class="text-[11px] font-bold uppercase tracking-[0.28em] text-[#617999]">order control</p>
             <h2 class="mt-2 text-2xl font-extrabold text-[#1b2e4a] sm:text-4xl">Boosting Board</h2>
             <p class="mt-2 max-w-xl text-sm text-[#526885]">
               Browse every platform, narrow by service type, and place an order with the right link and quantity.
             </p>
-          </div>
-
-          <div class="relative w-full self-stretch sm:w-auto sm:self-start">
-            <button
-              type="button"
-              @click="toggleBalance"
-              class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#d8e2f2] bg-white/95 px-4 py-2 text-sm font-semibold text-[#415a80] shadow-sm transition-colors hover:bg-white hover:text-[#1f3150] sm:w-auto"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="5" width="20" height="14" rx="2"/>
-                <path d="M16 12h.01"/>
-                <path d="M2 10h20"/>
-              </svg>
-              Balance
-              <svg :class="balanceOpen ? 'rotate-180' : ''"
-                class="transition-transform duration-200"
-                xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m6 9 6 6 6-6"/>
-              </svg>
-            </button>
-
-            <transition name="balance-dropdown">
-              <div
-                v-if="balanceOpen"
-                class="absolute left-0 right-0 top-full z-20 mt-2 w-full rounded-2xl border border-[#d8e2f2] bg-white p-4 shadow-[0_18px_44px_rgba(27,57,102,0.2)] sm:left-auto sm:w-64"
-              >
-                <div v-if="balanceLoading" class="text-sm text-[#6a7f9f]">Loading...</div>
-                <div v-else-if="balanceError" class="text-sm text-rose-600">{{ balanceError }}</div>
-                <div v-else-if="balance !== null" class="flex flex-col gap-1">
-                  <p class="text-xs font-semibold uppercase tracking-wide text-[#6a7f9f]">Account Balance</p>
-                  <div class="inline-flex w-fit gap-0.5 rounded-lg border border-[#d8e2f2] bg-[#f7faff] p-0.5">
-                    <button
-                      type="button"
-                      @click="setBalanceCurrency('EUR')"
-                      class="rounded-md px-2 py-1 text-[11px] font-semibold transition-colors"
-                      :class="balanceCurrency === 'EUR' ? 'bg-white text-[#1f3150] shadow-sm' : 'text-[#6a7f9f] hover:text-[#1f3150]'"
-                    >
-                      EUR
-                    </button>
-                    <button
-                      type="button"
-                      @click="setBalanceCurrency('USD')"
-                      class="rounded-md px-2 py-1 text-[11px] font-semibold transition-colors"
-                      :class="balanceCurrency === 'USD' ? 'bg-white text-[#1f3150] shadow-sm' : 'text-[#6a7f9f] hover:text-[#1f3150]'"
-                    >
-                      USD
-                    </button>
-                  </div>
-                  <p class="text-2xl font-bold text-[#153663]">{{ formattedBalance }}</p>
-                  <p v-if="balanceCurrency === 'USD' && hasUsdRate" class="text-[11px] text-[#6a7f9f]">1 EUR = {{ usdRate.toFixed(4) }} USD <span v-if="usdRateStatusLabel">({{ usdRateStatusLabel }})</span></p>
-                  <p v-else-if="balanceCurrency === 'USD'" class="text-[11px] text-[#6a7f9f]">USD conversion is currently unavailable.</p>
-                </div>
-                <button
-                  type="button"
-                  @click="fetchBalance"
-                  :disabled="balanceLoading"
-                  class="mt-3 flex w-full items-center justify-center gap-1 rounded-lg bg-[#f3f7ff] py-1.5 text-xs font-semibold text-[#5a7193] transition-colors hover:text-[#1f3150] disabled:opacity-40"
-                >
-                  <svg :class="balanceLoading ? 'animate-spin' : ''" xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 12a9 9 0 1 1-9-9 9 9 0 0 1 6.36 2.64L21 3v6h-6"/>
-                  </svg>
-                  Refresh
-                </button>
-              </div>
-            </transition>
           </div>
         </div>
 
@@ -132,7 +135,7 @@
           </div>
 
           <div class="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-            <div class="space-y-4">
+            <div class="service-column space-y-4">
               <div class="space-y-2 text-left">
                 <label for="service-search" class="text-sm font-semibold text-[#23344f]">Find service</label>
                 <input
@@ -140,7 +143,7 @@
                   v-model="serviceSearch"
                   type="text"
                   placeholder="Search by service name or category"
-                  class="w-full rounded-xl border border-[#cfdceb] bg-white px-4 py-3 focus:border-[#3b78da] focus:outline-none focus:ring-4 focus:ring-[#3b78da]/15"
+                  class="service-input w-full rounded-xl border border-[#cfdceb] bg-white px-4 py-3 focus:border-[#3b78da] focus:outline-none focus:ring-4 focus:ring-[#3b78da]/15"
                   :disabled="loading || servicesLoading"
                 />
               </div>
@@ -182,9 +185,9 @@
                       @pointercancel="cancelServiceHold"
                       @contextmenu.prevent="openServiceModal(svc)"
                     >
-                      <span class="min-w-0">
-                        <span class="block truncate text-sm font-bold text-[#1d314f]">{{ svc.name }}</span>
-                        <span class="mt-1 block truncate text-xs text-[#627895]">
+                      <span class="service-row-copy min-w-0">
+                        <span class="service-name block text-sm font-bold text-[#1d314f]">{{ svc.name }}</span>
+                        <span class="service-meta mt-1 block text-xs text-[#627895]">
                           {{ svc.platformLabel }} / {{ svc.typeLabel }} / #{{ svc.service }}
                         </span>
                       </span>
@@ -1014,6 +1017,11 @@ async function submitBoost() {
   touch-action: manipulation;
 }
 
+.service-column,
+.service-input {
+  min-width: 0;
+}
+
 .platform-chip {
   display: inline-flex;
   align-items: center;
@@ -1079,6 +1087,7 @@ async function submitBoost() {
 .service-row {
   display: flex;
   width: 100%;
+  max-width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -1089,6 +1098,24 @@ async function submitBoost() {
   text-align: left;
   transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
   touch-action: manipulation;
+}
+
+.service-row-copy {
+  flex: 1 1 auto;
+  max-width: 100%;
+}
+
+.service-name {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.service-meta {
+  overflow-wrap: anywhere;
 }
 
 .service-row + .service-row {
@@ -1168,6 +1195,10 @@ async function submitBoost() {
 }
 
 @media (max-width: 640px) {
+  .header-kicker {
+    letter-spacing: 0.18em;
+  }
+
   .board-shell {
     box-shadow: 0 18px 46px rgba(23, 57, 110, 0.14);
   }
@@ -1234,6 +1265,7 @@ async function submitBoost() {
   .service-list {
     max-height: 54svh;
     padding-right: 0;
+    overflow-x: hidden;
   }
 
   .service-group-heading {
@@ -1246,7 +1278,17 @@ async function submitBoost() {
     align-items: flex-start;
     flex-direction: column;
     gap: 8px;
+    max-width: 100%;
     padding: 10px;
+  }
+
+  .service-row-copy {
+    width: 100%;
+  }
+
+  .service-name {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
   }
 
   .service-row > span:last-child {

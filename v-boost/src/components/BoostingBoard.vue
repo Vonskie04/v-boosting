@@ -10,7 +10,7 @@
             <p class="text-[11px] font-bold uppercase tracking-[0.28em] text-[#617999]">order control</p>
             <h2 class="mt-2 text-2xl font-extrabold text-[#1b2e4a] sm:text-4xl">Boosting Board</h2>
             <p class="mt-2 max-w-xl text-sm text-[#526885]">
-              All services are available here. Paste TikTok links from desktop or mobile share flow and place an order in one step.
+              Browse every platform, narrow by service type, and place an order with the right link and quantity.
             </p>
           </div>
 
@@ -86,30 +86,49 @@
             <p class="stat-value">{{ services.length }}</p>
           </div>
           <div class="stat-tile">
-            <p class="stat-label">Categories</p>
-            <p class="stat-value">{{ categoryCount }}</p>
+            <p class="stat-label">Platforms</p>
+            <p class="stat-value">{{ platformCount }}</p>
           </div>
           <div class="stat-tile">
-            <p class="stat-label">Selected rate</p>
-            <p class="stat-value text-lg sm:text-xl">{{ selectedServiceRateLabel }}</p>
+            <p class="stat-label">Service types</p>
+            <p class="stat-value">{{ serviceTypeCount }}</p>
           </div>
         </div>
 
         <div class="rounded-3xl border border-[#d6e1f1] bg-white/90 p-4 sm:p-6">
-          <div class="mb-4 flex flex-wrap gap-2">
-            <button
-              v-for="cat in categories"
-              :key="cat.value"
-              type="button"
-              @click="selectedCategory = cat.value"
-              :disabled="loading || servicesLoading"
-              class="rounded-xl border px-4 py-2 text-sm font-semibold transition-all"
-              :class="selectedCategory === cat.value
-                ? 'border-[#145fc9] bg-[#145fc9] text-white shadow-[0_10px_20px_rgba(20,95,201,0.28)]'
-                : 'border-[#d2deee] bg-white text-[#4f6688] hover:border-[#b6cae6] hover:bg-[#f2f7ff]'"
-            >
-              {{ cat.label }}
-            </button>
+          <div class="mb-5 space-y-3">
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="platform in platformOptions"
+                :key="platform.value"
+                type="button"
+                @click="setSelectedPlatform(platform.value)"
+                :disabled="loading || servicesLoading"
+                class="platform-chip"
+                :class="selectedPlatform === platform.value
+                  ? 'border-[#145fc9] bg-[#145fc9] text-white shadow-[0_10px_20px_rgba(20,95,201,0.28)]'
+                  : 'border-[#d2deee] bg-white text-[#4f6688] hover:border-[#b6cae6] hover:bg-[#f2f7ff]'"
+              >
+                <span>{{ platform.label }}</span>
+                <span class="chip-count" :class="selectedPlatform === platform.value ? 'bg-white/20 text-white' : 'bg-[#edf4ff] text-[#587198]'">{{ platform.count }}</span>
+              </button>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="type in serviceTypeOptions"
+                :key="type.value"
+                type="button"
+                @click="setSelectedServiceType(type.value)"
+                :disabled="loading || servicesLoading"
+                class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all"
+                :class="selectedServiceType === type.value
+                  ? 'border-[#1e6b66] bg-[#1e6b66] text-white shadow-[0_8px_18px_rgba(30,107,102,0.18)]'
+                  : 'border-[#d2deee] bg-[#f8fbff] text-[#546b8e] hover:border-[#b6cae6] hover:bg-white'"
+              >
+                {{ type.label }} <span class="opacity-75">{{ type.count }}</span>
+              </button>
+            </div>
           </div>
 
           <div class="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
@@ -131,7 +150,7 @@
                   <label for="service" class="text-sm font-semibold text-[#23344f]">Service list</label>
                   <button
                     type="button"
-                    @click="loadServices(selectedCategory)"
+                    @click="loadServices"
                     :disabled="loading || servicesLoading"
                     class="inline-flex items-center gap-1.5 rounded-lg border border-[#d8e2f2] bg-white px-3 py-1.5 text-xs font-semibold text-[#4f6485] transition-colors hover:text-[#1f3150] disabled:opacity-40"
                     title="Refresh services"
@@ -143,27 +162,69 @@
                   </button>
                 </div>
 
-                <select
-                  v-if="!servicesLoading && filteredServices.length"
-                  id="service"
-                  v-model="selectedService"
-                  class="w-full rounded-xl border border-[#cfdceb] bg-white px-4 py-3 focus:border-[#3b78da] focus:outline-none focus:ring-4 focus:ring-[#3b78da]/15"
-                  :disabled="loading"
-                >
-                  <option v-for="svc in filteredServices" :key="svc.service" :value="svc.service">
-                    {{ svc.name }}
-                  </option>
-                </select>
+                <div v-if="!servicesLoading && filteredServices.length" id="service" class="service-list">
+                  <section v-for="group in groupedFilteredServices" :key="group.value" class="service-group">
+                    <div class="service-group-heading">
+                      <span>{{ group.label }}</span>
+                      <span>{{ group.items.length }}</span>
+                    </div>
+                    <button
+                      v-for="svc in group.items"
+                      :key="svc.service"
+                      type="button"
+                      class="service-row"
+                      :class="String(selectedService) === String(svc.service) ? 'service-row-active' : ''"
+                      :disabled="loading"
+                      @click="selectService(svc.service)"
+                      @pointerdown="beginServiceHold(svc)"
+                      @pointerup="cancelServiceHold"
+                      @pointerleave="cancelServiceHold"
+                      @pointercancel="cancelServiceHold"
+                      @contextmenu.prevent="openServiceModal(svc)"
+                    >
+                      <span class="min-w-0">
+                        <span class="block truncate text-sm font-bold text-[#1d314f]">{{ svc.name }}</span>
+                        <span class="mt-1 block truncate text-xs text-[#627895]">
+                          {{ svc.platformLabel }} / {{ svc.typeLabel }} / #{{ svc.service }}
+                        </span>
+                      </span>
+                      <span class="shrink-0 text-right">
+                        <span class="block text-xs font-bold text-[#145fc9]">{{ formatRateLabel(svc) }}</span>
+                        <span class="mt-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7a8ca7]">per 1k</span>
+                      </span>
+                    </button>
+                  </section>
+                </div>
                 <div v-else-if="servicesLoading" class="px-1 text-sm text-[#6a7f9f]">Loading services...</div>
                 <div v-else-if="servicesError" class="px-1 text-sm text-rose-600">Could not load services. Is the server running?</div>
                 <div v-else class="px-1 text-sm text-[#6a7f9f]">No services found for this filter.</div>
               </div>
             </div>
 
-            <div class="service-preview">
-              <p class="text-xs font-bold uppercase tracking-[0.24em] text-[#6c81a0]">Selected service</p>
-              <p class="mt-2 text-lg font-bold text-[#1b2f4c]">{{ selectedServiceData?.name || 'Pick a service' }}</p>
-              <p class="mt-1 text-sm text-[#5f7493]">{{ selectedServiceData?.category || 'Category unavailable' }}</p>
+            <div
+              class="service-preview"
+              @pointerdown="selectedServiceData && beginServiceHold(selectedServiceData)"
+              @pointerup="cancelServiceHold"
+              @pointerleave="cancelServiceHold"
+              @pointercancel="cancelServiceHold"
+              @contextmenu.prevent="selectedServiceData && openServiceModal(selectedServiceData)"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-xs font-bold uppercase tracking-[0.24em] text-[#6c81a0]">Selected service</p>
+                  <p class="mt-2 text-lg font-bold text-[#1b2f4c]">{{ selectedServiceData?.name || 'Pick a service' }}</p>
+                  <p class="mt-1 text-sm text-[#5f7493]">{{ selectedServiceData?.platformLabel || 'Platform unavailable' }} / {{ selectedServiceData?.typeLabel || 'Type unavailable' }}</p>
+                </div>
+                <button
+                  v-if="selectedServiceData"
+                  type="button"
+                  class="rounded-lg border border-[#cfdceb] bg-white px-3 py-1.5 text-xs font-semibold text-[#4f6485] transition-colors hover:bg-[#edf3fd]"
+                  @click.stop="openServiceModal(selectedServiceData)"
+                >
+                  Details
+                </button>
+              </div>
+              <p v-if="selectedServiceData" class="mt-3 text-sm leading-6 text-[#516987]">{{ selectedServiceDescription }}</p>
               <div class="mt-4 grid grid-cols-2 gap-2 text-sm">
                 <div class="mini-stat">
                   <span class="mini-label">Rate / 1k</span>
@@ -282,15 +343,98 @@
         </div>
       </div>
     </div>
+
+    <Teleport to="body">
+      <transition name="service-modal">
+        <div
+          v-if="serviceModalOpen"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-[#13233c]/45 px-4 py-6 backdrop-blur-sm"
+          @click="closeServiceModal"
+        >
+          <div
+            class="w-full max-w-lg rounded-2xl border border-[#d6e1f1] bg-white p-5 shadow-[0_28px_80px_rgba(12,31,62,0.28)] sm:p-6"
+            @click.stop
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-[#6c81a0]">{{ serviceModalData?.platformLabel }} / {{ serviceModalData?.typeLabel }}</p>
+                <h3 class="mt-2 text-xl font-extrabold leading-snug text-[#1b2e4a]">{{ serviceModalData?.name }}</h3>
+              </div>
+              <button
+                type="button"
+                class="rounded-lg border border-[#d8e2f2] bg-white p-2 text-[#536985] transition-colors hover:bg-[#eef3fb]"
+                @click="closeServiceModal"
+                aria-label="Close service details"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 6 6 18"/>
+                  <path d="m6 6 12 12"/>
+                </svg>
+              </button>
+            </div>
+
+            <p class="mt-4 text-sm leading-6 text-[#516987]">{{ serviceModalDescription }}</p>
+
+            <div class="mt-5 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+              <div class="mini-stat">
+                <span class="mini-label">Service ID</span>
+                <span class="mini-value">#{{ serviceModalData?.service ?? '-' }}</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-label">Rate / 1k</span>
+                <span class="mini-value">{{ formatRateLabel(serviceModalData) }}</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-label">Minimum</span>
+                <span class="mini-value">{{ serviceModalData?.min ?? '-' }}</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-label">Maximum</span>
+                <span class="mini-value">{{ serviceModalData?.max ?? '-' }}</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-label">Refill</span>
+                <span class="mini-value">{{ serviceModalData?.refill ? 'Yes' : 'No' }}</span>
+              </div>
+              <div class="mini-stat">
+                <span class="mini-label">Cancel</span>
+                <span class="mini-value">{{ serviceModalData?.cancel ? 'Yes' : 'No' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
 import { computed, onUnmounted, ref, watch } from 'vue'
 
-const categories = [
-  { label: 'All Services', value: 'all' },
-  { label: 'TikTok Services', value: 'tiktok' },
+const platformRules = [
+  { label: 'TikTok', value: 'tiktok', tokens: ['tiktok', 'tik tok'] },
+  { label: 'Instagram', value: 'instagram', tokens: ['instagram', 'insta', 'ig '] },
+  { label: 'YouTube', value: 'youtube', tokens: ['youtube', 'youtu.be', 'yt '] },
+  { label: 'Facebook', value: 'facebook', tokens: ['facebook', 'fb '] },
+  { label: 'X/Twitter', value: 'twitter', tokens: ['twitter', ' x ', 'x.com'] },
+  { label: 'Telegram', value: 'telegram', tokens: ['telegram', 't.me'] },
+  { label: 'Spotify', value: 'spotify', tokens: ['spotify'] },
+  { label: 'Twitch', value: 'twitch', tokens: ['twitch'] },
+  { label: 'Discord', value: 'discord', tokens: ['discord'] },
+  { label: 'Website', value: 'website', tokens: ['website', 'traffic', 'seo', 'google'] },
+]
+
+const serviceTypeRules = [
+  { label: 'Views', value: 'views', tokens: ['view', 'views', 'play', 'plays', 'impression', 'watch time'] },
+  { label: 'Followers', value: 'followers', tokens: ['follower', 'followers', 'subscriber', 'subscribers', 'member', 'members'] },
+  { label: 'Likes', value: 'likes', tokens: ['like', 'likes', 'reaction', 'reactions'] },
+  { label: 'Comments', value: 'comments', tokens: ['comment', 'comments', 'reply', 'replies'] },
+  { label: 'Shares', value: 'shares', tokens: ['share', 'shares', 'repost', 'retweet'] },
+  { label: 'Saves', value: 'saves', tokens: ['save', 'saves', 'favorite', 'favorites'] },
+  { label: 'Live', value: 'live', tokens: ['live', 'stream'] },
+  { label: 'Story', value: 'story', tokens: ['story', 'stories', 'reel', 'reels', 'short', 'shorts'] },
+  { label: 'Watch Time', value: 'watch-time', tokens: ['watch hour', 'watch hours', 'watchtime', 'retention'] },
+  { label: 'Traffic', value: 'traffic', tokens: ['traffic', 'visit', 'visits', 'click', 'clicks'] },
 ]
 
 // Balance
@@ -321,54 +465,115 @@ const loading = ref(false)
 const error = ref('')
 const orderId = ref(null)
 
-const selectedCategory = ref('all')
+const selectedPlatform = ref('all')
+const selectedServiceType = ref('all')
 const services = ref([])
 const selectedService = ref(null)
 const servicesLoading = ref(false)
 const servicesError = ref(false)
 const serviceSearch = ref('')
+const serviceModalOpen = ref(false)
+const serviceModalData = ref(null)
 
 const showCustomQuantity = ref(false)
 const customQuantity = ref(null)
 
+const platformFilteredServices = computed(() => {
+  if (selectedPlatform.value === 'all') return services.value
+  return services.value.filter(svc => svc.platform === selectedPlatform.value)
+})
+
 const filteredServices = computed(() => {
   const term = serviceSearch.value.trim().toLowerCase()
-  if (!term) return services.value
+  const byType = selectedServiceType.value === 'all'
+    ? platformFilteredServices.value
+    : platformFilteredServices.value.filter(svc => svc.serviceType === selectedServiceType.value)
 
-  return services.value.filter(svc => {
-    const haystack = `${svc.name ?? ''} ${svc.category ?? ''}`.toLowerCase()
+  if (!term) return byType
+
+  return byType.filter(svc => {
+    const haystack = `${svc.name ?? ''} ${svc.category ?? ''} ${svc.platformLabel ?? ''} ${svc.typeLabel ?? ''}`.toLowerCase()
     return haystack.includes(term)
   })
+})
+
+const groupedFilteredServices = computed(() => {
+  const groups = new Map()
+  filteredServices.value.forEach(svc => {
+    const key = svc.serviceType || 'other'
+    if (!groups.has(key)) {
+      groups.set(key, {
+        value: key,
+        label: svc.typeLabel || 'Other',
+        items: [],
+      })
+    }
+    groups.get(key).items.push(svc)
+  })
+
+  return [...groups.values()]
 })
 
 const selectedServiceData = computed(() =>
   services.value.find(item => String(item.service) === String(selectedService.value)) || null
 )
 
-const categoryCount = computed(() => {
+const platformCount = computed(() => {
   const keys = new Set(
     services.value
-      .map(item => (item.category || '').trim())
+      .map(item => item.platform)
       .filter(Boolean)
   )
   return keys.size
 })
 
+const serviceTypeCount = computed(() => {
+  const keys = new Set(
+    services.value
+      .map(item => item.serviceType)
+      .filter(Boolean)
+  )
+  return keys.size
+})
+
+const platformOptions = computed(() => {
+  const counts = countBy(services.value, 'platform')
+  const options = [
+    { label: 'All Platforms', value: 'all', count: services.value.length },
+    ...platformRules
+      .filter(rule => counts.get(rule.value))
+      .map(rule => ({ label: rule.label, value: rule.value, count: counts.get(rule.value) })),
+  ]
+
+  if (counts.get('other')) {
+    options.push({ label: 'Other', value: 'other', count: counts.get('other') })
+  }
+
+  return options
+})
+
+const serviceTypeOptions = computed(() => {
+  const counts = countBy(platformFilteredServices.value, 'serviceType')
+  const options = [
+    { label: 'All Types', value: 'all', count: platformFilteredServices.value.length },
+    ...serviceTypeRules
+      .filter(rule => counts.get(rule.value))
+      .map(rule => ({ label: rule.label, value: rule.value, count: counts.get(rule.value) })),
+  ]
+
+  if (counts.get('other')) {
+    options.push({ label: 'Other', value: 'other', count: counts.get('other') })
+  }
+
+  return options
+})
+
 const selectedServiceRateLabel = computed(() => {
-  const raw = Number.parseFloat(selectedServiceData.value?.rate)
-  if (!Number.isFinite(raw)) return '-'
-  return `${raw.toFixed(2)} ${balanceCurrency.value}`
+  return formatRateLabel(selectedServiceData.value)
 })
 
 const platformName = computed(() => {
-  const text = `${selectedServiceData.value?.name ?? ''} ${selectedServiceData.value?.category ?? ''}`.toLowerCase()
-  if (text.includes('instagram')) return 'Instagram'
-  if (text.includes('youtube')) return 'YouTube'
-  if (text.includes('facebook')) return 'Facebook'
-  if (text.includes('twitter') || text.includes(' x ')) return 'X/Twitter'
-  if (text.includes('telegram')) return 'Telegram'
-  if (text.includes('spotify')) return 'Spotify'
-  return 'TikTok'
+  return selectedServiceData.value?.platformLabel || 'Social'
 })
 
 const urlFieldLabel = computed(() => `${platformName.value} URL`)
@@ -382,6 +587,9 @@ const urlPlaceholder = computed(() => {
     'X/Twitter': 'https://x.com/... or https://twitter.com/...',
     Telegram: 'https://t.me/...',
     Spotify: 'https://open.spotify.com/...',
+    Twitch: 'https://www.twitch.tv/...',
+    Discord: 'https://discord.gg/...',
+    Website: 'https://example.com/...',
   }
   return placeholders[platformName.value] || 'https://example.com/...'
 })
@@ -400,6 +608,10 @@ const estimatedPriceLabel = computed(() => {
   return formatCurrency(eurEstimate, 'EUR')
 })
 
+const selectedServiceDescription = computed(() => buildServiceDescription(selectedServiceData.value))
+
+const serviceModalDescription = computed(() => buildServiceDescription(serviceModalData.value))
+
 const usdRateStatusLabel = computed(() => {
   if (!hasUsdRate.value || !usdRateUpdatedAt.value) return ''
   return `Updated ${new Date(usdRateUpdatedAt.value).toLocaleTimeString()}`
@@ -412,6 +624,62 @@ function formatCurrency(amount, currency) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 4,
   }).format(amount)
+}
+
+function countBy(items, key) {
+  const counts = new Map()
+  items.forEach(item => {
+    const value = item?.[key] || 'other'
+    counts.set(value, (counts.get(value) || 0) + 1)
+  })
+  return counts
+}
+
+function serviceText(service) {
+  return ` ${service?.name ?? ''} ${service?.category ?? ''} ${service?.type ?? ''} `.toLowerCase()
+}
+
+function classifyFromRules(service, rules) {
+  const text = serviceText(service)
+  return rules.find(rule => rule.tokens.some(token => text.includes(token))) || null
+}
+
+function enrichService(service) {
+  const platform = classifyFromRules(service, platformRules)
+  const type = classifyFromRules(service, serviceTypeRules)
+
+  return {
+    ...service,
+    platform: platform?.value || 'other',
+    platformLabel: platform?.label || 'Other',
+    serviceType: type?.value || 'other',
+    typeLabel: type?.label || 'Other',
+  }
+}
+
+function buildServiceDescription(service) {
+  if (!service) return ''
+
+  const platform = service.platformLabel || 'selected platform'
+  const type = (service.typeLabel || 'service').toLowerCase()
+  const min = service.min ?? '-'
+  const max = service.max ?? '-'
+  const refill = service.refill ? 'includes refill support' : 'does not include refill support'
+  const cancel = service.cancel ? 'can be cancelled when supported upstream' : 'does not advertise cancellation'
+
+  return `${service.name} is a ${platform} ${type} service. Orders accept quantities from ${min} to ${max}, ${refill}, and ${cancel}. Use a matching ${platform} link for the best chance of a clean submission.`
+}
+
+function formatRateLabel(service) {
+  const raw = Number.parseFloat(service?.rate)
+  if (!Number.isFinite(raw)) return '-'
+
+  if (balanceCurrency.value === 'USD') {
+    if (!hasUsdRate.value) return 'N/A USD'
+    return `${(raw * usdRate.value).toFixed(2)} USD`
+  }
+
+  return `${raw.toFixed(2)} EUR`
 }
 
 async function fetchBalance() {
@@ -516,6 +784,50 @@ function resetOrder() {
   customQuantity.value = null
 }
 
+function setSelectedPlatform(value) {
+  selectedPlatform.value = value
+  selectedServiceType.value = 'all'
+}
+
+function setSelectedServiceType(value) {
+  selectedServiceType.value = value
+}
+
+function selectService(serviceId) {
+  selectedService.value = serviceId
+  error.value = ''
+}
+
+let serviceHoldTimer = null
+
+function beginServiceHold(service) {
+  if (!service || loading.value || servicesLoading.value) return
+  selectService(service.service)
+  cancelServiceHold()
+  serviceHoldTimer = setTimeout(() => {
+    openServiceModal(service)
+  }, 650)
+}
+
+function cancelServiceHold() {
+  if (!serviceHoldTimer) return
+  clearTimeout(serviceHoldTimer)
+  serviceHoldTimer = null
+}
+
+function openServiceModal(service = selectedServiceData.value) {
+  cancelServiceHold()
+  if (!service) return
+  serviceModalData.value = service
+  serviceModalOpen.value = true
+}
+
+function closeServiceModal() {
+  cancelServiceHold()
+  serviceModalOpen.value = false
+  serviceModalData.value = null
+}
+
 function setPresetQuantity(value) {
   quantity.value = value
   showCustomQuantity.value = false
@@ -535,30 +847,32 @@ function applyCustomQuantity() {
   showCustomQuantity.value = false
 }
 
-function normalizeTikTokUrl(raw) {
+function normalizeSocialUrl(raw) {
   const trimmed = String(raw || '').trim()
   if (!trimmed) return ''
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
 }
 
-async function loadServices(filter) {
+async function loadServices() {
   servicesLoading.value = true
   servicesError.value = false
   services.value = []
   selectedService.value = null
 
   try {
-    const res = await fetch(`/api/services?filter=${filter}`)
+    const res = await fetch('/api/services?filter=all')
     if (!res.ok) throw new Error('Bad response')
     const data = await res.json()
 
     const selectable = Array.isArray(data)
       ? data.filter(item => /^\d+$/.test(String(item?.service ?? '')))
+        .map(enrichService)
       : []
 
     services.value = selectable
 
-    const viewsService = selectable.find(s => /views?/i.test(s.name || ''))
+    const viewsService = selectable.find(s => s.platform === 'tiktok' && s.serviceType === 'views')
+      || selectable.find(s => s.serviceType === 'views')
     selectedService.value = (viewsService ?? selectable[0])?.service ?? null
   } catch {
     servicesError.value = true
@@ -566,11 +880,6 @@ async function loadServices(filter) {
     servicesLoading.value = false
   }
 }
-
-watch(selectedCategory, cat => {
-  serviceSearch.value = ''
-  loadServices(cat)
-}, { immediate: true })
 
 watch(filteredServices, list => {
   if (!list.length) {
@@ -583,9 +892,22 @@ watch(filteredServices, list => {
   }
 })
 
+watch(selectedPlatform, platform => {
+  if (platformOptions.value.some(item => item.value === platform)) return
+  selectedPlatform.value = 'all'
+})
+
+watch(serviceTypeOptions, options => {
+  if (options.some(item => item.value === selectedServiceType.value)) return
+  selectedServiceType.value = 'all'
+})
+
 onUnmounted(() => {
   stopUsdRateRefresh()
+  cancelServiceHold()
 })
+
+loadServices()
 
 async function submitBoost() {
   error.value = ''
@@ -593,7 +915,7 @@ async function submitBoost() {
   loading.value = true
 
   try {
-    const normalizedUrl = normalizeTikTokUrl(url.value)
+    const normalizedUrl = normalizeSocialUrl(url.value)
     url.value = normalizedUrl
 
     const res = await fetch('/api/boost', {
@@ -689,6 +1011,88 @@ async function submitBoost() {
   border-radius: 18px;
   padding: 14px;
   background: linear-gradient(180deg, rgba(245, 250, 255, 0.9), rgba(236, 244, 255, 0.72));
+  touch-action: manipulation;
+}
+
+.platform-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-width: 1px;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.chip-count {
+  min-width: 24px;
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.service-list {
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.service-group + .service-group {
+  margin-top: 14px;
+}
+
+.service-group-heading {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  border: 1px solid #d9e4f3;
+  border-radius: 10px;
+  background: rgba(247, 251, 255, 0.96);
+  padding: 7px 10px;
+  color: #5f7493;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.service-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #d4e0f0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 11px 12px;
+  text-align: left;
+  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  touch-action: manipulation;
+}
+
+.service-row + .service-row {
+  margin-top: 8px;
+}
+
+.service-row:hover {
+  border-color: #adc4e5;
+  background: #f8fbff;
+}
+
+.service-row-active {
+  border-color: #145fc9;
+  background: #eef6ff;
+  box-shadow: 0 10px 24px rgba(20, 95, 201, 0.14);
 }
 
 .mini-stat {
@@ -725,5 +1129,26 @@ async function submitBoost() {
 .balance-dropdown-leave-to {
   opacity: 0;
   transform: translateY(-8px) scale(0.98);
+}
+
+.service-modal-enter-active,
+.service-modal-leave-active {
+  transition: opacity 0.18s ease;
+}
+
+.service-modal-enter-active > div,
+.service-modal-leave-active > div {
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.service-modal-enter-from,
+.service-modal-leave-to {
+  opacity: 0;
+}
+
+.service-modal-enter-from > div,
+.service-modal-leave-to > div {
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
 }
 </style>

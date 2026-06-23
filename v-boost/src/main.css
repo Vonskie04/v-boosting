@@ -21,6 +21,11 @@ body,
     min-height: 100%;
 }
 
+html,
+body {
+    overflow-x: hidden;
+}
+
 body {
     margin: 0;
     color: var(--ink);
@@ -29,6 +34,21 @@ body {
         radial-gradient(1200px 700px at 12% -8%, #ffe7cc 0%, transparent 60%),
         radial-gradient(1000px 650px at 105% 18%, #cfe2ff 0%, transparent 62%),
         linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+}
+
+input,
+select,
+textarea,
+button {
+    font: inherit;
+}
+
+@media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+    }
 }
 
 ::selection {

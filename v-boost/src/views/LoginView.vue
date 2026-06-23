@@ -67,7 +67,7 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { AUTH_FLAG } from '../router'
+import { AUTH_FLAG, WELCOME_FLAG } from '../router'
 
 const router = useRouter()
 const passwordInput = ref('')
@@ -125,6 +125,7 @@ async function handleSubmit() {
       return
     }
     sessionStorage.setItem(AUTH_FLAG, data.token)
+    sessionStorage.setItem(WELCOME_FLAG, '1')
     router.push({ name: 'dashboard' })
   } catch {
     errorMessage.value = 'Could not reach the server.'

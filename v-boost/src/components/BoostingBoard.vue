@@ -1,6 +1,6 @@
 <template>
-  <div class="flex-1 w-full px-3 py-4 sm:px-6 sm:py-7">
-    <div class="board-shell mx-auto w-full max-w-6xl rounded-[30px] border border-[#d7e2f3] p-4 shadow-[0_30px_70px_rgba(23,57,110,0.18)] sm:p-7">
+  <div class="flex-1 w-full px-2 py-3 sm:px-6 sm:py-7">
+    <div class="board-shell mx-auto w-full max-w-6xl rounded-[22px] border border-[#d7e2f3] p-3 shadow-[0_30px_70px_rgba(23,57,110,0.18)] sm:rounded-[30px] sm:p-7">
       <div class="board-glow board-glow-left"></div>
       <div class="board-glow board-glow-right"></div>
 
@@ -14,11 +14,11 @@
             </p>
           </div>
 
-          <div class="relative self-end sm:self-start">
+          <div class="relative w-full self-stretch sm:w-auto sm:self-start">
             <button
               type="button"
               @click="toggleBalance"
-              class="inline-flex items-center gap-2 rounded-xl border border-[#d8e2f2] bg-white/95 px-4 py-2 text-sm font-semibold text-[#415a80] shadow-sm transition-colors hover:bg-white hover:text-[#1f3150]"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#d8e2f2] bg-white/95 px-4 py-2 text-sm font-semibold text-[#415a80] shadow-sm transition-colors hover:bg-white hover:text-[#1f3150] sm:w-auto"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="5" width="20" height="14" rx="2"/>
@@ -36,7 +36,7 @@
             <transition name="balance-dropdown">
               <div
                 v-if="balanceOpen"
-                class="absolute right-0 top-full z-20 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-[#d8e2f2] bg-white p-4 shadow-[0_18px_44px_rgba(27,57,102,0.2)]"
+                class="absolute left-0 right-0 top-full z-20 mt-2 w-full rounded-2xl border border-[#d8e2f2] bg-white p-4 shadow-[0_18px_44px_rgba(27,57,102,0.2)] sm:left-auto sm:w-64"
               >
                 <div v-if="balanceLoading" class="text-sm text-[#6a7f9f]">Loading...</div>
                 <div v-else-if="balanceError" class="text-sm text-rose-600">{{ balanceError }}</div>
@@ -80,7 +80,7 @@
           </div>
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-3">
+        <div class="stats-grid grid grid-cols-3 gap-2 sm:gap-3">
           <div class="stat-tile">
             <p class="stat-label">Total services</p>
             <p class="stat-value">{{ services.length }}</p>
@@ -95,9 +95,9 @@
           </div>
         </div>
 
-        <div class="rounded-3xl border border-[#d6e1f1] bg-white/90 p-4 sm:p-6">
+        <div class="rounded-2xl border border-[#d6e1f1] bg-white/90 p-3 sm:rounded-3xl sm:p-6">
           <div class="mb-5 space-y-3">
-            <div class="flex flex-wrap gap-2">
+            <div class="chip-rail">
               <button
                 v-for="platform in platformOptions"
                 :key="platform.value"
@@ -114,14 +114,14 @@
               </button>
             </div>
 
-            <div class="flex flex-wrap gap-2">
+            <div class="chip-rail">
               <button
                 v-for="type in serviceTypeOptions"
                 :key="type.value"
                 type="button"
                 @click="setSelectedServiceType(type.value)"
                 :disabled="loading || servicesLoading"
-                class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all"
+                class="type-chip rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all"
                 :class="selectedServiceType === type.value
                   ? 'border-[#1e6b66] bg-[#1e6b66] text-white shadow-[0_8px_18px_rgba(30,107,102,0.18)]'
                   : 'border-[#d2deee] bg-[#f8fbff] text-[#546b8e] hover:border-[#b6cae6] hover:bg-white'"
@@ -146,7 +146,7 @@
               </div>
 
               <div class="space-y-2 text-left">
-                <div class="flex items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center justify-between gap-2">
                   <label for="service" class="text-sm font-semibold text-[#23344f]">Service list</label>
                   <button
                     type="button"
@@ -209,7 +209,7 @@
               @pointercancel="cancelServiceHold"
               @contextmenu.prevent="selectedServiceData && openServiceModal(selectedServiceData)"
             >
-              <div class="flex items-start justify-between gap-3">
+              <div class="service-preview-header flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <p class="text-xs font-bold uppercase tracking-[0.24em] text-[#6c81a0]">Selected service</p>
                   <p class="mt-2 text-lg font-bold text-[#1b2f4c]">{{ selectedServiceData?.name || 'Pick a service' }}</p>
@@ -267,14 +267,14 @@
 
             <div class="space-y-2 text-left">
               <label for="quantity" class="text-sm font-semibold text-[#23344f]">Quantity</label>
-              <div class="flex flex-wrap gap-2">
+              <div class="quantity-presets flex flex-wrap gap-2">
                 <button
                   v-for="preset in [500, 1000, 5000]"
                   :key="preset"
                   type="button"
                   @click="setPresetQuantity(preset)"
                   :disabled="loading"
-                  class="rounded-xl border px-3 py-2 text-sm font-semibold transition-colors"
+                  class="quantity-button rounded-xl border px-3 py-2 text-sm font-semibold transition-colors"
                   :class="!showCustomQuantity && quantity === preset ? 'border-[#145fc9] bg-[#145fc9] text-white' : 'border-[#cfdceb] bg-white text-[#4b6388] hover:bg-[#edf3fd]'"
                 >
                   {{ preset }}
@@ -283,7 +283,7 @@
                   type="button"
                   @click="showCustomQuantity = !showCustomQuantity"
                   :disabled="loading"
-                  class="rounded-xl border px-3 py-2 text-sm font-semibold transition-colors"
+                  class="quantity-button rounded-xl border px-3 py-2 text-sm font-semibold transition-colors"
                   :class="showCustomQuantity ? 'border-[#145fc9] bg-[#145fc9] text-white' : 'border-[#cfdceb] bg-white text-[#4b6388] hover:bg-[#edf3fd]'"
                 >
                   Custom
@@ -303,7 +303,7 @@
                   type="button"
                   @click="applyCustomQuantity"
                   :disabled="loading"
-                  class="rounded-xl border border-[#cfdceb] bg-white px-4 py-2.5 text-sm font-semibold text-[#4f6485] hover:bg-[#edf3fd]"
+                  class="rounded-xl border border-[#cfdceb] bg-white px-4 py-2.5 text-sm font-semibold text-[#4f6485] hover:bg-[#edf3fd] sm:w-auto"
                 >
                   Apply
                 </button>
@@ -348,17 +348,17 @@
       <transition name="service-modal">
         <div
           v-if="serviceModalOpen"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-[#13233c]/45 px-4 py-6 backdrop-blur-sm"
+          class="fixed inset-0 z-50 flex items-end justify-center bg-[#13233c]/45 px-2 py-2 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
           @click="closeServiceModal"
         >
           <div
-            class="w-full max-w-lg rounded-2xl border border-[#d6e1f1] bg-white p-5 shadow-[0_28px_80px_rgba(12,31,62,0.28)] sm:p-6"
+            class="max-h-[calc(100dvh-1rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-[#d6e1f1] bg-white p-4 shadow-[0_28px_80px_rgba(12,31,62,0.28)] sm:p-6"
             @click.stop
           >
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0">
                 <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-[#6c81a0]">{{ serviceModalData?.platformLabel }} / {{ serviceModalData?.typeLabel }}</p>
-                <h3 class="mt-2 text-xl font-extrabold leading-snug text-[#1b2e4a]">{{ serviceModalData?.name }}</h3>
+                <h3 class="mt-2 text-lg font-extrabold leading-snug text-[#1b2e4a] sm:text-xl">{{ serviceModalData?.name }}</h3>
               </div>
               <button
                 type="button"
@@ -1017,6 +1017,7 @@ async function submitBoost() {
 .platform-chip {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   gap: 8px;
   border-width: 1px;
   border-radius: 12px;
@@ -1024,6 +1025,16 @@ async function submitBoost() {
   font-size: 13px;
   font-weight: 700;
   transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.chip-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.type-chip {
+  flex: 0 0 auto;
 }
 
 .chip-count {
@@ -1095,6 +1106,10 @@ async function submitBoost() {
   box-shadow: 0 10px 24px rgba(20, 95, 201, 0.14);
 }
 
+.quantity-button {
+  min-height: 40px;
+}
+
 .mini-stat {
   display: flex;
   flex-direction: column;
@@ -1150,5 +1165,123 @@ async function submitBoost() {
 .service-modal-leave-to > div {
   opacity: 0;
   transform: translateY(10px) scale(0.98);
+}
+
+@media (max-width: 640px) {
+  .board-shell {
+    box-shadow: 0 18px 46px rgba(23, 57, 110, 0.14);
+  }
+
+  .board-glow {
+    opacity: 0.45;
+  }
+
+  .board-glow-left {
+    left: -170px;
+    top: -150px;
+  }
+
+  .board-glow-right {
+    right: -180px;
+    top: 90px;
+  }
+
+  .stats-grid {
+    align-items: stretch;
+  }
+
+  .stat-tile {
+    border-radius: 12px;
+    padding: 10px 8px;
+    min-width: 0;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    line-height: 1.25;
+    min-height: 24px;
+  }
+
+  .stat-value {
+    margin-top: 4px;
+    font-size: 21px;
+  }
+
+  .chip-rail {
+    flex-wrap: nowrap;
+    margin-inline: -12px;
+    overflow-x: auto;
+    padding: 0 12px 3px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .chip-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .platform-chip {
+    padding: 8px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .type-chip {
+    white-space: nowrap;
+  }
+
+  .service-list {
+    max-height: 54svh;
+    padding-right: 0;
+  }
+
+  .service-group-heading {
+    border-radius: 9px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .service-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .service-row > span:last-child {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+  }
+
+  .service-preview {
+    padding: 12px;
+  }
+
+  .service-preview-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mini-stat {
+    min-width: 0;
+    padding: 8px;
+  }
+
+  .mini-value {
+    overflow-wrap: anywhere;
+  }
+
+  .quantity-presets {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quantity-button {
+    width: 100%;
+  }
 }
 </style>

@@ -3,6 +3,7 @@ import LoginView from '../views/LoginView.vue'
 import DashboardView from '../views/DashboardView.vue'
 
 const AUTH_FLAG = 'vboost_token'
+const WELCOME_FLAG = 'vboost_show_welcome'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -54,5 +55,5 @@ router.beforeEach(async (to, _from, next) => {
   next()
 })
 
-export { AUTH_FLAG }
+export { AUTH_FLAG, WELCOME_FLAG }
 export default router

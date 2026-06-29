@@ -49,6 +49,7 @@
 
       <div v-show="isOpen" class="space-y-2 p-3">
         <textarea
+          ref="textareaRef"
           v-model="text"
           class="h-28 w-full resize-y rounded-xl border border-white/55 bg-white/55 px-3 py-2 text-sm text-[#1b2a44] outline-none placeholder:text-[#5c7090] focus:ring-2 focus:ring-[#2a67c0]/45"
           placeholder="Quick notes, links, and snippets..."
@@ -104,6 +105,7 @@ const status = ref('')
 const isVisible = ref(true)
 const isDragging = ref(false)
 const panelRef = ref(null)
+const textareaRef = ref(null)
 const position = ref({ x: 16, y: 120 })
 
 const dragState = {
@@ -224,17 +226,30 @@ function openWidget() {
   isVisible.value = true
 }
 
+function getSelectedClipboardText() {
+  const textarea = textareaRef.value
+  if (textarea && textarea.selectionStart !== textarea.selectionEnd) {
+    return text.value.slice(textarea.selectionStart, textarea.selectionEnd)
+  }
+
+  const selection = window.getSelection?.()
+  const selectedText = selection?.toString() ?? ''
+  return selectedText.trim() ? selectedText : text.value
+}
+
 async function copyText() {
   if (!navigator.clipboard) {
     setStatus('Clipboard not available in this browser context.')
     return
   }
 
+  const textToCopy = getSelectedClipboardText()
+
   try {
-    await navigator.clipboard.writeText(text.value)
+    await navigator.clipboard.writeText(textToCopy)
     localStorage.setItem(STORAGE_KEY_TEXT, text.value)
     copied.value = true
-    setStatus('Copied to clipboard.')
+    setStatus(textToCopy === text.value ? 'Copied to clipboard.' : 'Copied selection.')
 
     clearTimeout(copiedTimer)
     copiedTimer = setTimeout(() => {

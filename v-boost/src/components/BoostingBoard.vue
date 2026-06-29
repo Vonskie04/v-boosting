@@ -177,8 +177,9 @@
                       class="service-row"
                       :class="String(selectedService) === String(svc.service) ? 'service-row-active' : ''"
                       :disabled="loading"
-                      @click="selectService(svc.service)"
-                      @pointerdown="beginServiceHold(svc)"
+                      @click="handleServiceClick(svc)"
+                      @pointerdown="beginServiceHold(svc, $event)"
+                      @pointermove="moveServiceHold"
                       @pointerup="cancelServiceHold"
                       @pointerleave="cancelServiceHold"
                       @pointercancel="cancelServiceHold"
@@ -205,7 +206,8 @@
 
             <div
               class="service-preview"
-              @pointerdown="selectedServiceData && beginServiceHold(selectedServiceData)"
+              @pointerdown="selectedServiceData && beginServiceHold(selectedServiceData, $event)"
+              @pointermove="moveServiceHold"
               @pointerup="cancelServiceHold"
               @pointerleave="cancelServiceHold"
               @pointercancel="cancelServiceHold"
@@ -801,20 +803,64 @@ function selectService(serviceId) {
 }
 
 let serviceHoldTimer = null
+const serviceHoldState = {
+  service: null,
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+  suppressNextClick: false,
+}
+const serviceHoldMoveTolerance = 10
 
-function beginServiceHold(service) {
-  if (!service || loading.value || servicesLoading.value) return
+function isMobileViewport() {
+  return typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches
+}
+
+function shouldUseServiceHold(event) {
+  return isMobileViewport() && event?.pointerType !== 'mouse'
+}
+
+function handleServiceClick(service) {
+  if (serviceHoldState.suppressNextClick) {
+    serviceHoldState.suppressNextClick = false
+    return
+  }
   selectService(service.service)
+}
+
+function beginServiceHold(service, event) {
+  if (!service || loading.value || servicesLoading.value) return
+  if (!shouldUseServiceHold(event)) return
+
   cancelServiceHold()
+  serviceHoldState.service = service
+  serviceHoldState.pointerId = event.pointerId
+  serviceHoldState.startX = event.clientX
+  serviceHoldState.startY = event.clientY
   serviceHoldTimer = setTimeout(() => {
+    serviceHoldTimer = null
+    serviceHoldState.suppressNextClick = true
     openServiceModal(service)
   }, 650)
 }
 
+function moveServiceHold(event) {
+  if (!serviceHoldTimer || event.pointerId !== serviceHoldState.pointerId) return
+
+  const movedX = Math.abs(event.clientX - serviceHoldState.startX)
+  const movedY = Math.abs(event.clientY - serviceHoldState.startY)
+  if (movedX > serviceHoldMoveTolerance || movedY > serviceHoldMoveTolerance) {
+    cancelServiceHold()
+  }
+}
+
 function cancelServiceHold() {
-  if (!serviceHoldTimer) return
-  clearTimeout(serviceHoldTimer)
+  if (serviceHoldTimer) {
+    clearTimeout(serviceHoldTimer)
+  }
   serviceHoldTimer = null
+  serviceHoldState.service = null
+  serviceHoldState.pointerId = null
 }
 
 function openServiceModal(service = selectedServiceData.value) {
@@ -1262,9 +1308,9 @@ async function submitBoost() {
   }
 
   .service-list {
-    max-height: 54svh;
+    max-height: none;
+    overflow: visible;
     padding-right: 0;
-    overflow-x: hidden;
   }
 
   .service-group-heading {
@@ -1299,7 +1345,7 @@ async function submitBoost() {
   }
 
   .service-preview {
-    padding: 12px;
+    display: none;
   }
 
   .service-preview-header {
